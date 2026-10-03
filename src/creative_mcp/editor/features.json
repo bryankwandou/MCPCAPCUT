@@ -1,0 +1,249 @@
+{
+ "updated": "2026-10-02",
+ "disclaimer": "Status Free/Pro diambil dari informasi publik per Oktober 2026 dan bisa berbeda per wilayah atau berubah sewaktu-waktu. Cek ulang di aplikasi Canva/CapCut Anda.",
+ "legend": {
+  "tier": {
+   "free": "Gratis",
+   "terbatas": "Gratis terbatas (sebagian isi/kuota butuh Pro)",
+   "pro": "Hanya berbayar (Pro/Teams)"
+  },
+  "studio": {
+   "ada": "Ada di Rakit Studio dan berfungsi",
+   "sebagian": "Ada sebagian",
+   "akun": "Lewat akun Anda sendiri (Canva API / aplikasi CapCut)",
+   "tidak": "Tidak tersedia"
+  }
+ },
+ "sources": [
+  {
+   "title": "CapCut Pro vs Free in 2026",
+   "url": "https://vidpros.com/capcut-pro-vs-free/"
+  },
+  {
+   "title": "CapCut Pro PC (capcut.com)",
+   "url": "https://www.capcut.com/resource/capcut-pro-pc"
+  },
+  {
+   "title": "CapCut Free vs Standard vs Pro",
+   "url": "https://www.miracamp.com/learn/capcut/free-vs-capcut-pro"
+  }
+ ],
+ "features": [
+  {
+   "app": "capcut",
+   "cat": "Timeline",
+   "name": "Timeline multi-track",
+   "tier": "free",
+   "studio": "ada",
+   "note": ""
+  },
+  {
+   "app": "capcut",
+   "cat": "Timeline",
+   "name": "Trim & split",
+   "tier": "free",
+   "studio": "ada",
+   "note": "Tombol gunting / tombol S."
+  },
+  {
+   "app": "capcut",
+   "cat": "Timeline",
+   "name": "Kecepatan (normal)",
+   "tier": "free",
+   "studio": "ada",
+   "note": "0.1×–10×"
+  },
+  {
+   "app": "capcut",
+   "cat": "Timeline",
+   "name": "Kurva kecepatan",
+   "tier": "free",
+   "studio": "tidak",
+   "note": ""
+  },
+  {
+   "app": "capcut",
+   "cat": "Timeline",
+   "name": "Keyframe (posisi, skala, rotasi, opacity, volume)",
+   "tier": "free",
+   "studio": "ada",
+   "note": "Eksperimental: format keyframe draft CapCut belum diuji di semua versi."
+  },
+  {
+   "app": "capcut",
+   "cat": "Timeline",
+   "name": "Transform (posisi, skala, rotasi, opacity)",
+   "tier": "free",
+   "studio": "ada",
+   "note": ""
+  },
+  {
+   "app": "capcut",
+   "cat": "Timeline",
+   "name": "Freeze frame, reverse, stabilisasi",
+   "tier": "free",
+   "studio": "tidak",
+   "note": ""
+  },
+  {
+   "app": "capcut",
+   "cat": "Timeline",
+   "name": "Chroma key & mask",
+   "tier": "free",
+   "studio": "tidak",
+   "note": ""
+  },
+  {
+   "app": "capcut",
+   "cat": "Teks & audio",
+   "name": "Teks & judul",
+   "tier": "free",
+   "studio": "ada",
+   "note": ""
+  },
+  {
+   "app": "capcut",
+   "cat": "Teks & audio",
+   "name": "Template & animasi teks",
+   "tier": "terbatas",
+   "studio": "sebagian",
+   "note": "Dari library pribadi (yang pernah Anda pakai)."
+  },
+  {
+   "app": "capcut",
+   "cat": "Teks & audio",
+   "name": "Auto caption",
+   "tier": "terbatas",
+   "studio": "tidak",
+   "note": "AI di server CapCut."
+  },
+  {
+   "app": "capcut",
+   "cat": "Teks & audio",
+   "name": "Text-to-speech",
+   "tier": "terbatas",
+   "studio": "tidak",
+   "note": "AI di server CapCut."
+  },
+  {
+   "app": "capcut",
+   "cat": "Teks & audio",
+   "name": "Musik & efek suara bawaan",
+   "tier": "terbatas",
+   "studio": "tidak",
+   "note": "Pakai audio milik sendiri."
+  },
+  {
+   "app": "capcut",
+   "cat": "Teks & audio",
+   "name": "Volume, fade in & fade out",
+   "tier": "free",
+   "studio": "ada",
+   "note": ""
+  },
+  {
+   "app": "capcut",
+   "cat": "Teks & audio",
+   "name": "Vocal isolation & pengurang noise",
+   "tier": "pro",
+   "studio": "tidak",
+   "note": ""
+  },
+  {
+   "app": "capcut",
+   "cat": "Efek",
+   "name": "Stiker",
+   "tier": "terbatas",
+   "studio": "sebagian",
+   "note": "Dari library pribadi, item VIP ditandai PRO."
+  },
+  {
+   "app": "capcut",
+   "cat": "Efek",
+   "name": "Efek video",
+   "tier": "terbatas",
+   "studio": "sebagian",
+   "note": "Dari library pribadi; tampilannya dirender CapCut."
+  },
+  {
+   "app": "capcut",
+   "cat": "Efek",
+   "name": "Filter & adjust",
+   "tier": "terbatas",
+   "studio": "sebagian",
+   "note": "Dari library pribadi."
+  },
+  {
+   "app": "capcut",
+   "cat": "Efek",
+   "name": "Transisi",
+   "tier": "terbatas",
+   "studio": "sebagian",
+   "note": "Preview crossfade sederhana; hasil asli dirender CapCut."
+  },
+  {
+   "app": "capcut",
+   "cat": "AI",
+   "name": "Hapus background video",
+   "tier": "pro",
+   "studio": "tidak",
+   "note": "Free: kredit terbatas."
+  },
+  {
+   "app": "capcut",
+   "cat": "AI",
+   "name": "Auto reframe",
+   "tier": "pro",
+   "studio": "tidak",
+   "note": ""
+  },
+  {
+   "app": "capcut",
+   "cat": "AI",
+   "name": "Retouch wajah",
+   "tier": "pro",
+   "studio": "tidak",
+   "note": ""
+  },
+  {
+   "app": "capcut",
+   "cat": "AI",
+   "name": "Camera tracking",
+   "tier": "pro",
+   "studio": "tidak",
+   "note": ""
+  },
+  {
+   "app": "capcut",
+   "cat": "Proyek",
+   "name": "Template video",
+   "tier": "terbatas",
+   "studio": "sebagian",
+   "note": "Rakit: 4 template orisinal. Template Pro CapCut ber-watermark di akun free."
+  },
+  {
+   "app": "capcut",
+   "cat": "Proyek",
+   "name": "Export 1080p tanpa watermark",
+   "tier": "free",
+   "studio": "akun",
+   "note": "Render tetap di aplikasi CapCut setelah Deploy."
+  },
+  {
+   "app": "capcut",
+   "cat": "Proyek",
+   "name": "Export 4K / 60 fps",
+   "tier": "pro",
+   "studio": "akun",
+   "note": "Sesuai paket akun CapCut Anda."
+  },
+  {
+   "app": "capcut",
+   "cat": "Proyek",
+   "name": "Cloud storage (Pro 100 GB+)",
+   "tier": "pro",
+   "studio": "tidak",
+   "note": "Project tetap di komputer Anda."
+  }
+ ]
+}
