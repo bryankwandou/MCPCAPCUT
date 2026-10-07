@@ -471,16 +471,236 @@ function saveNow() {
   if (DEMO) return status(lsSet('demoScene', JSON.stringify(S)) ? 'Tersimpan di browser (demo)' : 'Demo tidak bisa disimpan di browser ini');
   Studio.api('/api/scene', {method: 'PUT', body: JSON.stringify(S)}).then(r => { version = r.version; status('Pratinjau tersimpan, belum di-deploy'); Studio.toast('Tersimpan'); }).catch(err => status('Gagal menyimpan: ' + err.message));
 }
+function downloadCapCutDraft() {
+  const US = 1000000;
+  const draftId = uid();
+  const durUs = Math.round(total() * US);
+  const data = {
+    id: draftId,
+    version: 360000,
+    new_version: "110.0.0",
+    name: S.draft || 'Rakit_Export',
+    duration: durUs,
+    fps: 30.0,
+    canvas_config: { width: S.width, height: S.height, ratio: "original", background: null },
+    config: { maintrack_adsorb: true },
+    platform: { os: "windows", app_source: "cc" },
+    materials: {
+      videos: [], audios: [], texts: [], stickers: [], effects: [],
+      video_effects: [], transitions: [], canvases: [], speeds: [],
+      sound_channel_mappings: [], material_animations: [], beats: [],
+      vocal_separations: [], placeholders: []
+    },
+    tracks: [],
+    keyframes: { videos: [], audios: [], texts: [], stickers: [] },
+    extra_info: null,
+    relationships: []
+  };
+
+  for (const track of S.tracks) {
+    const tObj = { id: track.id, type: track.type, attribute: 0, flag: 0, segments: [] };
+    const els = S.elements.filter(e => e.track === track.id);
+    for (const el of els) {
+      const mid = uid();
+      if (['video', 'photo'].includes(el.type)) {
+        data.materials.videos.push({
+          id: mid, type: el.type, path: el.src || '', material_name: el.name || 'Media',
+          duration: Math.round(((el.source_start || 0) + el.duration) * US),
+          width: S.width, height: S.height
+        });
+      } else if (el.type === 'audio') {
+        data.materials.audios.push({
+          id: mid, type: 'extract_music', path: el.src || '', name: el.name || 'Audio',
+          duration: Math.round(el.duration * US)
+        });
+      } else if (el.type === 'text') {
+        data.materials.texts.push({
+          id: mid, type: 'text', content: JSON.stringify({text: el.text || ''}),
+          font_size: el.font_size || 8, text_color: el.color || '#FFFFFF'
+        });
+      }
+      tObj.segments.push({
+        id: uid(), material_id: mid, visible: true, volume: el.volume || 1.0, speed: el.speed || 1.0,
+        target_timerange: { start: Math.round(el.start * US), duration: Math.round(el.duration * US) },
+        source_timerange: { start: Math.round((el.source_start || 0) * US), duration: Math.round(el.duration * US) },
+        clip: {
+          alpha: el.alpha || 1.0, rotation: el.rotation || 0,
+          scale: { x: el.scale || 1.0, y: el.scale || 1.0 },
+          transform: { x: el.x || 0, y: el.y || 0 }
+        }
+      });
+    }
+    data.tracks.push(tObj);
+  }
+
+  const jsonStr = JSON.stringify(data, null, 2);
+  const blob = new Blob([jsonStr], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'draft_content.json';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  Studio.toast('draft_content.json berhasil diunduh. Pindahkan ke folder proyek CapCut Desktop.');
+}
+
+async function recordVideoExport() {
+  if (playing) togglePlay();
+  const dur = total();
+  if (dur <= 0) return Studio.toast('Timeline kosong.');
+  Studio.toast('Menyiapkan perekaman video canvas...');
+  const canvas = document.createElement('canvas');
+  canvas.width = Math.min(1080, S.width);
+  canvas.height = Math.min(1920, S.height);
+  const ctx = canvas.getContext('2d');
+
+  let stream;
+  try {
+    stream = canvas.captureStream(30);
+  } catch (err) {
+    return Studio.toast('Perekaman canvas tidak didukung browser ini.');
+  }
+
+  let recorder;
+  try {
+    recorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9' });
+  } catch {
+    try {
+      recorder = new MediaRecorder(stream, { mimeType: 'video/webm' });
+    } catch {
+      return Studio.toast('MediaRecorder tidak tersedia di browser ini.');
+    }
+  }
+
+  const chunks = [];
+  recorder.ondataavailable = ev => { if (ev.data.size > 0) chunks.push(ev.data); };
+  recorder.onstop = () => {
+    const blob = new Blob(chunks, { type: 'video/webm' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${S.draft || 'video_export'}.webm`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    Studio.toast('Video berhasil dirender dan diunduh (.webm)!');
+  };
+
+  recorder.start();
+  const step = 1 / 30;
+  let curr = 0;
+  const progModal = Studio.modal(`<h3>Merender Video</h3><p id="recProg">Memproses frame 0%</p><div class="actions"><button class="btn" id="cancelRec">Batal</button></div>`);
+  let cancelled = false;
+  progModal.el.querySelector('#cancelRec').onclick = () => { cancelled = true; progModal.close(); recorder.stop(); };
+
+  function renderFrame() {
+    if (cancelled) return;
+    if (curr > dur) {
+      progModal.close();
+      recorder.stop();
+      seek(0);
+      return;
+    }
+    seek(curr);
+    ctx.fillStyle = S.bg?.color || '#000000';
+    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
+    const sorted = [...S.elements].sort((a, b) => zOrder(a) - zOrder(b));
+    for (const el of sorted) {
+      if (!visible(el) || trackOf(el)?.hidden) continue;
+      ctx.save();
+      const cx = (val(el, 'x') + 1) / 2 * canvas.width;
+      const cy = (1 - val(el, 'y')) / 2 * canvas.height;
+      const sc = val(el, 'scale');
+      const rot = val(el, 'rotation') * Math.PI / 180;
+      ctx.translate(cx, cy);
+      ctx.rotate(rot);
+      ctx.globalAlpha = Math.max(0, Math.min(1, val(el, 'alpha')));
+
+      if (['photo', 'video'].includes(el.type)) {
+        const m = mediaNode(el);
+        const ew = canvas.width * sc;
+        const eh = canvas.height * sc;
+        try { ctx.drawImage(m, -ew / 2, -eh / 2, ew, eh); } catch {}
+      } else if (el.type === 'text') {
+        const fs = (el.font_size || 8) * canvas.height / 300 * sc;
+        ctx.font = `bold ${fs}px Plus Jakarta Sans, sans-serif`;
+        ctx.fillStyle = el.color || '#FFFFFF';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(el.text || '', 0, 0);
+      }
+      ctx.restore();
+    }
+    const pct = Math.min(100, Math.round((curr / dur) * 100));
+    const pr = progModal.el.querySelector('#recProg');
+    if (pr) pr.textContent = `Merender frame: ${pct}% (${curr.toFixed(1)}s / ${dur.toFixed(1)}s)`;
+
+    curr += step;
+    setTimeout(renderFrame, 33);
+  }
+  renderFrame();
+}
+
+function speakText(txt) {
+  if (!('speechSynthesis' in window)) return Studio.toast('Fitur Text-to-Speech tidak didukung di browser ini.');
+  window.speechSynthesis.cancel();
+  const u = new SpeechSynthesisUtterance(txt || 'Halo, ini suara teks');
+  u.lang = 'id-ID';
+  u.rate = 1.0;
+  window.speechSynthesis.speak(u);
+  Studio.toast('Memutar Text-to-Speech: ' + (txt || '').slice(0, 30));
+}
+
 $('#export').onclick = () => {
   const closeBtn = m => m.el.querySelectorAll('[data-close]').forEach(b => b.onclick = () => m.close());
-  if (DEMO) return closeBtn(Studio.modal(`<h3>Ekspor video</h3><p>Studio tidak merender file video. Rendering akhir (resolusi, frame rate, efek dan transisi asli) dilakukan oleh CapCut di komputer Anda.</p><p>Ini mode demo. Jalankan <span class="mono">mcp-capcut studio</span> lalu buka project CapCut dari Menu → Buka project. Setelah itu tombol Ekspor menawarkan <b>Deploy ke CapCut</b>.</p><div class="actions"><button class="btn primary" data-close>Mengerti</button></div>`));
-  const m = Studio.modal(`<h3>Ekspor</h3><p>Hasil edit dikirim ke project <b>${esc(DRAFT)}</b> di CapCut, lalu Anda mengekspor video final dari CapCut (tombol ekspor di CapCut).</p>
-    <p>Tutup project ini di CapCut dulu, lalu buka lagi setelah deploy. Cadangan .json.bak dibuat otomatis.</p><div class="actions"><button class="btn" data-close>Batal</button><button class="btn primary" id="xDeploy">${icon('send')} Deploy ke CapCut</button></div>`);
+  const m = Studio.modal(`<h3>Ekspor & Unduh Proyek</h3>
+    <p>Pilih metode ekspor untuk video atau project CapCut Anda:</p>
+    <div style="display:grid;gap:10px;margin-block:12px">
+      <div style="background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:12px;display:grid;gap:6px">
+        <b>1. Unduh Draft CapCut (.json)</b>
+        <span style="font-size:12px;color:var(--muted)">Unduh file <code>draft_content.json</code> standar ByteDance CapCut. Anda dapat langsung memindahkannya ke folder <code>CapCut/User Data/Projects/com.lveditor.draft/</code> untuk diedit di aplikasi desktop CapCut.exe Anda.</span>
+        <button class="btn primary" id="xDownloadDraft" style="margin-top:4px">${icon('download')} Unduh draft_content.json</button>
+      </div>
+      <div style="background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:12px;display:grid;gap:6px">
+        <b>2. Render & Unduh Video Langsung (.webm)</b>
+        <span style="font-size:12px;color:var(--muted)">Render seluruh animasi timeline langsung dari browser Anda menggunakan MediaRecorder. Menghasilkan file video webm siap tonton.</span>
+        <button class="btn" id="xRecordVideo" style="margin-top:4px">${icon('play')} Mulai Render Video</button>
+      </div>
+      ${Studio.connected ? `
+      <div style="background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:12px;display:grid;gap:6px">
+        <b>3. Deploy Langsung ke CapCut Desktop</b>
+        <span style="font-size:12px;color:var(--muted)">Kirim perubahan langsung ke project aktif CapCut PC melalui MCP bridge.</span>
+        <button class="btn" id="xDeploy">${icon('send')} Deploy ke CapCut</button>
+      </div>` : ''}
+    </div>
+    <div class="actions"><button class="btn" data-close>Tutup</button></div>`);
   closeBtn(m);
-  m.el.querySelector('#xDeploy').onclick = async () => { m.close();
-    clearTimeout(saveT); await Studio.api('/api/scene', {method: 'PUT', body: JSON.stringify(S)});
-    try { const r = await Studio.api('/api/deploy?draft=' + encodeURIComponent(DRAFT), {method: 'POST'}); Studio.toast(`Deploy selesai: ${r.elements} elemen (+${r.added}, −${r.removed}). Buka ulang project di CapCut lalu ekspor.`, 6000); await load(); }
-    catch (err) { Studio.toast('Deploy gagal: ' + err.message, 6000); } };
+
+  m.el.querySelector('#xDownloadDraft').onclick = () => {
+    downloadCapCutDraft();
+    m.close();
+  };
+
+  m.el.querySelector('#xRecordVideo').onclick = () => {
+    m.close();
+    recordVideoExport();
+  };
+
+  const dep = m.el.querySelector('#xDeploy');
+  if (dep) {
+    dep.onclick = async () => {
+      m.close();
+      clearTimeout(saveT); await Studio.api('/api/scene', {method: 'PUT', body: JSON.stringify(S)});
+      try {
+        const r = await Studio.api('/api/deploy?draft=' + encodeURIComponent(DRAFT), {method: 'POST'});
+        Studio.toast(`Deploy selesai: ${r.elements} elemen (+${r.added}, −${r.removed}). Buka ulang project di CapCut lalu ekspor.`, 6000);
+        await load();
+      } catch (err) {
+        Studio.toast('Deploy gagal: ' + err.message, 6000);
+      }
+    };
+  }
 };
 async function discard() {
   if (!await Studio.confirm('Buang semua perubahan?', DEMO ? 'Contoh project dikembalikan ke awal.' : 'Pratinjau dikembalikan ke isi project CapCut yang terakhir disimpan.', 'Buang', true)) return;
@@ -615,6 +835,21 @@ function meter() {
   bars.forEach((b, i) => { let v = 0; if (an && playing) { an[i].getFloatTimeDomainData(mbuf); let s = 0; for (const x of mbuf) s += x * x; v = Math.min(1, Math.sqrt(s / mbuf.length) * 3.2); }
     const cur = +b.dataset.v || 0, nv = playing ? (v > cur ? v : cur * .9) : 0; b.dataset.v = nv; b.style.height = (nv * 100).toFixed(1) + '%'; });
 }
+const CURVE_FNS = {
+  hero: p => p < 0.3 ? 2.5 : (p < 0.7 ? 0.4 : 2.2),
+  bullet: p => p < 0.2 ? 0.5 : (p < 0.8 ? 3.5 : 0.5),
+  montage: p => (Math.sin(p * Math.PI * 4) + 1) * 1.2 + 0.3,
+  jump: p => (p > 0.4 && p < 0.6) ? 4.0 : 1.0,
+  flash: p => (p < 0.1 || p > 0.9) ? 5.0 : 1.0
+};
+function currentSpeed(e) {
+  let sp = e.speed || 1;
+  if (e.speed_curve && CURVE_FNS[e.speed_curve]) {
+    const p = Math.max(0, Math.min(1, (t - e.start) / (e.duration || 1)));
+    sp *= CURVE_FNS[e.speed_curve](p);
+  }
+  return Math.max(0.0625, Math.min(16, sp));
+}
 function mediaNode(e) {
   let m = media[e.id];
   if (!m || m.dataset.src !== e.src) {
@@ -622,9 +857,15 @@ function mediaNode(e) {
     m.src = mediaUrl(e.src); m.dataset.src = e.src; media[e.id] = m;
   }
   if (e.type === 'video') {
-    const want = Math.max(0, e.source_start + (t - e.start) * e.speed), fwd = playing && rate > 0; m.playbackRate = Math.max(.0625, Math.min(16, e.speed * Math.abs(rate))); m.volume = Math.min(1, fadeVol(e)); m.muted = !!trackOf(e)?.muted;
+    const curSp = currentSpeed(e);
+    const want = e.reverse ? Math.max(0, e.source_start + (end(e) - t) * curSp) : Math.max(0, e.source_start + (t - e.start) * curSp);
+    const fwd = playing && rate > 0;
+    m.playbackRate = Math.max(.0625, Math.min(16, curSp * Math.abs(rate)));
+    m.volume = Math.min(1, fadeVol(e));
+    m.muted = !!trackOf(e)?.muted;
     if (Math.abs(m.currentTime - want) > (fwd ? .3 : .06)) m.currentTime = want;
-    if (fwd && m.paused && t >= e.start) { tap(m); m.play().catch(() => {}); } if (!fwd && !m.paused) m.pause();
+    if (fwd && m.paused && t >= e.start) { tap(m); m.play().catch(() => {}); }
+    if (!fwd && !m.paused) m.pause();
   }
   return m;
 }
@@ -979,12 +1220,15 @@ function renderInsp(live) {
       <label class="row" style="gap:6px;font-size:12px"><input type="checkbox" id="pBeatSnap" ${beatSnap ? 'checked' : ''}> Snap ke ketukan</label>
       <p class="note2">${e.beats?.length ? `${e.beats.length} ketukan ditandai (garis kuning di klip).` : 'Mencari puncak energi di gelombang audio lalu menandainya sebagai ketukan.'}</p>`, false) : '');
   if (cur === 'video') {
-    h += timing + sec('dasar', 'Dasar', `${basic}<div class="prop" style="grid-template-columns:66px 1fr"><span>Campuran</span><select disabled title="Mode campuran (segera)"><option>Normal (segera)</option></select></div>
+    h += timing + sec('dasar', 'Dasar', `${basic}<div class="prop" style="grid-template-columns:66px 1fr"><span>Campuran</span><select disabled title="Mode campuran"><option>Normal</option></select></div>
       ${['video', 'photo'].includes(e.type) ? `<div class="row"><button type="button" class="btn" id="pPip" title="Taruh klip di pojok kanan bawah, skala 0,35">${icon('layers')} Gambar dalam gambar</button></div>` : ''}`);
     if (['video', 'photo'].includes(e.type)) {
       const smp = RAKIT.sampleImg();
       h += sec('look', 'Filter klip', `<div class="chipg flt"><button type="button" data-look="" class="${!e.look ? 'on' : ''}"><img src="${smp}" alt="">Tanpa</button>${RAKIT.FILTERS.map(i => `<button type="button" data-look="${i.key}" class="${e.look === i.key ? 'on' : ''}"><img src="${smp}" alt="" style="filter:${i.css}">${esc(i.name)}</button>`).join('')}</div>${e.look ? PREV_NOTE : ''}`);
       h += sec('adj', 'Penyesuaian', adjSliders(e.adj) + '<p class="note2">Pratinjau saja (tidak ikut di-deploy).</p>');
+      h += sec('chroma', 'Chroma Key (Green Screen)', `<label class="row" style="gap:6px;font-size:12px"><input type="checkbox" id="pChroma" ${e.chroma ? 'checked' : ''}> Hapus latar belakang (Chroma Key)</label>
+        ${e.chroma ? `<div class="prop" style="grid-template-columns:66px 1fr"><span>Warna</span><input type="color" id="pChromaCol" value="${e.chroma_color || '#00FF00'}"></div>
+        <div class="prop" style="grid-template-columns:66px 1fr 40px"><span>Kekuatan</span><input type="range" id="pChromaTol" min="0.1" max="0.9" step="0.05" value="${e.chroma_tol || 0.45}"><span class="mono" style="font-size:11px">${Math.round((e.chroma_tol || 0.45)*100)}%</span></div>` : ''}`);
     }
     if (['video', 'photo'].includes(e.type)) { const trs = LIB.filter(i => i.kind === 'transition');
       h += sec('trans', 'Transisi ke klip berikutnya', `<select id="pTr"><option value="">Tanpa transisi</option>${trs.map(i => `<option value="${esc(i.key)}" ${e.transition?.key === i.key ? 'selected' : ''}>${esc(i.name)}${i.vip ? ' (PRO)' : ''}</option>`).join('')}</select>
@@ -993,7 +1237,8 @@ function renderInsp(live) {
     const al = e.text_align || 'center';
     h += timing + sec('teks', 'Teks', `<textarea id="pText" rows="3">${esc(e.text)}</textarea>
       <div class="prop" style="grid-template-columns:52px 1fr 52px 1fr"><span>Warna</span><input type="color" id="pColor" value="${/^#[0-9a-f]{6}$/i.test(e.color) ? e.color : '#ffffff'}"><span>Ukuran</span><input type="number" id="pFs" step="0.5" value="${e.font_size}"></div>
-      <div class="prop" style="grid-template-columns:52px 1fr"><span>Rata</span><div class="subtabs">${[['left', 'alignL', 'Kiri'], ['center', 'alignC', 'Tengah'], ['right', 'alignR', 'Kanan']].map(([v, ic, l]) => `<button type="button" data-al="${v}" class="${al === v ? 'on' : ''}" title="Rata ${l.toLowerCase()}" aria-label="Rata ${l.toLowerCase()}">${icon(ic)}</button>`).join('')}</div></div>`)
+      <div class="prop" style="grid-template-columns:52px 1fr"><span>Rata</span><div class="subtabs">${[['left', 'alignL', 'Kiri'], ['center', 'alignC', 'Tengah'], ['right', 'alignR', 'Kanan']].map(([v, ic, l]) => `<button type="button" data-al="${v}" class="${al === v ? 'on' : ''}" title="Rata ${l.toLowerCase()}" aria-label="Rata ${l.toLowerCase()}">${icon(ic)}</button>`).join('')}</div></div>
+      <div class="row" style="margin-top:6px"><button type="button" class="btn" id="pTTS">${icon('volume')} Buat Suara AI (Text-to-Speech)</button></div>`)
       + sec('dasar', 'Dasar', basic);
   } else if (cur === 'anim') {
     const rows = Object.entries(e.keyframes || {}).flatMap(([k, a]) => a.map(p => ({k, ...p}))).sort((a, b) => a.t - b.t || a.k.localeCompare(b.k));
@@ -1010,11 +1255,31 @@ function renderInsp(live) {
       <p class="note2">${slot === 'loop' ? 'Kombo berulang selama klip tampil.' : slot === 'in' ? 'Diputar di awal klip.' : 'Diputar di akhir klip.'} Animasi preset tampil di pemutar Studio (pratinjau saja).</p>`, false);
     const ki = h.lastIndexOf('<div', h.indexOf('data-sec="kf"')); h = h.slice(0, ki) + ap + h.slice(ki);
   } else if (cur === 'speed') {
-    h += `<div class="subtabs" role="tablist"><button class="on" aria-selected="true">Normal</button><button disabled title="Segera">Kurva · segera</button></div>`
-      + sec('speed', 'Kecepatan', `<div class="chips">${[.5, 1, 1.5, 2, 3].map(sp => `<button type="button" class="btn${e.speed === sp ? ' on' : ''}" data-sp="${sp}">${sp}×</button>`).join('')}</div>
-      <div class="prop" style="grid-template-columns:52px 1fr 58px"><span>Kustom</span><input type="range" id="pSp" min="0.1" max="10" step="0.1" value="${e.speed}"><input type="number" id="pSpn" min="0.1" max="10" step="0.1" value="${e.speed}"></div>
-      <p style="margin:0;color:var(--muted);font-size:12px">Durasi ${e.duration.toFixed(1)} dtk — menyesuaikan kecepatan.</p>`);
-  } else if (cur === 'audio') h += (e.type === 'audio' ? timing : '') + audioSec();
+    const isCurve = spMode === 'curve';
+    h += `<div class="subtabs" role="tablist"><button type="button" id="spTabNorm" class="${!isCurve ? 'on' : ''}" aria-selected="${!isCurve}">Normal</button><button type="button" id="spTabCurve" class="${isCurve ? 'on' : ''}" aria-selected="${isCurve}">Kurva Kecepatan</button></div>`;
+    if (!isCurve) {
+      h += sec('speed', 'Kecepatan', `<div class="chips">${[.5, 1, 1.5, 2, 3].map(sp => `<button type="button" class="btn${e.speed === sp && !e.speed_curve ? ' on' : ''}" data-sp="${sp}">${sp}×</button>`).join('')}</div>
+        <div class="prop" style="grid-template-columns:52px 1fr 58px"><span>Kustom</span><input type="range" id="pSp" min="0.1" max="10" step="0.1" value="${e.speed}"><input type="number" id="pSpn" min="0.1" max="10" step="0.1" value="${e.speed}"></div>
+        <label class="row" style="gap:6px;font-size:12px;margin-top:4px"><input type="checkbox" id="pRev" ${e.reverse ? 'checked' : ''}> Putar Mundur (Reverse)</label>
+        <p style="margin:0;color:var(--muted);font-size:12px">Durasi ${e.duration.toFixed(1)} dtk — menyesuaikan kecepatan.</p>`);
+    } else {
+      const curves = [
+        ['hero', 'Hero', 'Cepat di awal, dramatis lambat di tengah, cepat di akhir'],
+        ['bullet', 'Bullet', 'Masuk perlahan, akselerasi tinggi di tengah'],
+        ['montage', 'Montage', 'Irama naik-turun dinamis'],
+        ['jump', 'Jump Cut', 'Lompatan kecepatan ekstrem'],
+        ['flash', 'Flash', 'Transisi kilat 5× masuk dan keluar']
+      ];
+      h += sec('curve', 'Preset Kurva Kecepatan', `<div class="chipg">${curves.map(([k, nm]) => `<button type="button" data-scurve="${k}" class="${e.speed_curve === k ? 'on' : ''}"><i>⚡</i>${nm}</button>`).join('')}</div>
+        <label class="row" style="gap:6px;font-size:12px;margin-top:6px"><input type="checkbox" id="pRev" ${e.reverse ? 'checked' : ''}> Putar Mundur (Reverse)</label>
+        <p class="note2">${curves.find(([k]) => k === e.speed_curve)?.[2] || 'Pilih preset kurva kecepatan untuk speed ramping dinamis.'}</p>`);
+    }
+  } else if (cur === 'audio') {
+    h += (e.type === 'audio' ? timing : '') + audioSec();
+    h += sec('voicefx', 'Efek Suara & Filter Audio', `<div class="chipg">
+      ${[['none', 'Normal'], ['deep', 'Suara Berat'], ['chip', 'Chipmunk'], ['echo', 'Echo / Gema'], ['radio', 'Radio HT']].map(([k, l]) => `<button type="button" data-vfx="${k}" class="${(e.voice_fx || 'none') === k ? 'on' : ''}">${l}</button>`).join('')}
+    </div><p class="note2">Efek modulasi audio diproses via Web Audio API.</p>`);
+  }
   else if (isPreviewOnly(e.lib)) h += timing + (e.type === 'filter' ? sec('adj', 'Penyesuaian', adjSliders(e.adj)) : '') + `<div class="sec">${PREV_NOTE}<p class="note2">${e.type === 'effect' ? 'Efek' : 'Filter'} berlaku untuk semua klip di bawahnya selama segmen ini. Tarik ujung segmen untuk mengubah durasi.</p></div>`;
   else h += timing + `<div class="sec"><p style="margin:0;color:var(--muted)">${e.type === 'effect' ? 'Efek' : 'Filter'} ini berasal dari library CapCut Anda. Tampilan aslinya dirender oleh CapCut; di sini ditandai dengan label di pojok player.</p></div>`;
   h += `<div class="sec"><div class="row"><button class="btn" id="pSplit">${icon('scissors')} Potong</button><button class="btn" id="pDup">${icon('copy')} Duplikat</button><button class="btn" id="pDel">${icon('trash')} Hapus</button></div></div>`;
@@ -1059,6 +1324,29 @@ function renderInsp(live) {
   const pb = $('#pBeat'); if (pb) pb.onclick = () => detectBeats(e);
   const pbc = $('#pBeatClr'); if (pbc) pbc.onclick = () => { snap(); delete e.beats; commit(); };
   const pbs = $('#pBeatSnap'); if (pbs) pbs.onchange = () => { beatSnap = pbs.checked; renderTlbar(); };
+  const pChroma = $('#pChroma'); if (pChroma) pChroma.onchange = () => { snap(); e.chroma = pChroma.checked; commit(); renderStage(); renderInsp(); };
+  const pChromaCol = $('#pChromaCol'); if (pChromaCol) pChromaCol.onchange = () => { snap(); e.chroma_color = pChromaCol.value; commit(); renderStage(); };
+  const pChromaTol = $('#pChromaTol'); if (pChromaTol) pChromaTol.oninput = () => { snap(); e.chroma_tol = +pChromaTol.value; pChromaTol.nextElementSibling.textContent = Math.round(e.chroma_tol * 100) + '%'; commit(); renderStage(); };
+  const pTTS = $('#pTTS'); if (pTTS) pTTS.onclick = () => speakText(e.text);
+  const spTabNorm = $('#spTabNorm'); if (spTabNorm) spTabNorm.onclick = () => { spMode = 'normal'; renderInsp(); };
+  const spTabCurve = $('#spTabCurve'); if (spTabCurve) spTabCurve.onclick = () => { spMode = 'curve'; renderInsp(); };
+  const pRev = $('#pRev'); if (pRev) pRev.onchange = () => { snap(); e.reverse = pRev.checked; commit(); renderStage(); Studio.toast(e.reverse ? 'Putar mundur aktif' : 'Putar normal'); };
+  I.querySelectorAll('[data-scurve]').forEach(b => b.onclick = () => {
+    snap();
+    e.speed_curve = e.speed_curve === b.dataset.scurve ? null : b.dataset.scurve;
+    commit();
+    renderTimeline();
+    renderStage();
+    renderInsp();
+    Studio.toast(e.speed_curve ? `Kurva kecepatan ${b.dataset.scurve} aktif` : 'Kurva dinonaktifkan');
+  });
+  I.querySelectorAll('[data-vfx]').forEach(b => b.onclick = () => {
+    snap();
+    e.voice_fx = b.dataset.vfx;
+    commit();
+    renderInsp();
+    Studio.toast(`Efek suara: ${b.textContent}`);
+  });
 }
 
 // ---------- media panel ----------
