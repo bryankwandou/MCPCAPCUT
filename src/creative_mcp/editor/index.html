@@ -430,6 +430,10 @@ textarea#script { min-height: 120px; width: 100%; }
         <div class="desk-tool-icon"><svg class="i" viewBox="0 0 24 24"><path d="M9 4a5 5 0 1 0 0 10 5 5 0 0 0 0-10zM15 10a5 5 0 1 0 0 10 5 5 0 0 0 0-10z"/></svg></div>
         <div class="desk-tool-info"><b>Chroma Key</b><span>Hapus green screen</span></div>
       </div>
+      <div class="desk-tool-card" id="toolJedagJedug" style="border-color:#ff005544;background:#180e1a">
+        <div class="desk-tool-icon" style="color:#ff0055;background:#ff00551a"><svg class="i" viewBox="0 0 24 24"><path d="M13 3L5 13h6l-1 8 8-10h-6z"/></svg></div>
+        <div class="desk-tool-info"><b>Jedag Jedug Beat</b><span>Cut cepat, flash &amp; 10 transisi</span></div>
+      </div>
       <div class="desk-tool-card" id="toolSmartTemplates">
         <div class="desk-tool-icon"><svg class="i" viewBox="0 0 24 24"><path d="M12 3l1.8 4.7 4.7 1.8-4.7 1.8L12 16l-1.8-4.7-4.7-1.8 4.7-1.8z"/></svg></div>
         <div class="desk-tool-info"><b>Templat Viral</b><span>Promo, reels, slideshow</span></div>
@@ -466,8 +470,9 @@ textarea#script { min-height: 120px; width: 100%; }
       <h2 style="font-size:20px;font-weight:800;color:#fff">Pusat Templat Video</h2>
       <p style="margin:2px 0 0;font-size:12px;color:var(--muted)">Pilih dari berbagai gaya video viral: Promo Produk, Sinematik, Quotes, dan YouTube Intro.</p>
     </div>
-    <div style="display:flex;gap:6px" id="templateFilterChips">
+    <div style="display:flex;gap:6px;flex-wrap:wrap" id="templateFilterChips">
       <button class="btn primary" data-cat="all">Semua</button>
+      <button class="btn" data-cat="jedagjedug">Jedag Jedug Beat</button>
       <button class="btn" data-cat="promo">Promo &amp; Iklan</button>
       <button class="btn" data-cat="reels">TikTok / Reels (9:16)</button>
       <button class="btn" data-cat="youtube">YouTube (16:9)</button>
@@ -666,6 +671,19 @@ function duplicateProject(name) {
 
 const TEMPLATE_PRESETS = [
   {
+    id: 'jedag_jedug_viral',
+    cat: 'jedagjedug',
+    name: 'Jedag Jedug Beat Viral (9:16)',
+    desc: 'Animasi jedag-jedug khas CapCut dengan potongan beat cepat, transisi zoom & glitch bertubi-tubi, shake flash efek, dan musik upbeat EDM.',
+    ratio: '9:16',
+    w: 1080, h: 1920,
+    palette: { primary: '#FFE66D', accent: '#FF0055', bg: '#0A0612' },
+    title: 'JEDAG JEDUG VIRAL',
+    subtitle: 'Full Beat Drop &middot; Efek Transisi Maksimal',
+    cta: 'Dibuat dengan CapCut Web Pro',
+    isJedagJedug: true
+  },
+  {
     id: 'promo_viral',
     cat: 'promo',
     name: 'Promo Diskon Kilat (9:16)',
@@ -804,32 +822,185 @@ function applyTemplateToProject(tpl) {
   snap();
   DRAFT = tpl.name.replace(/\s*\(.*\)/, '') + ' ' + Math.floor(Math.random() * 900 + 100);
   $('#pnameT').textContent = DRAFT;
-  const vt = uid(), tt = uid(), at = uid();
-  const dur = 9.0;
-  
-  // Create sample backgrounds matching palette
-  const p1 = demoImage('Scene 1', tpl.palette.bg, tpl.palette.accent, tpl.w, tpl.h);
-  const p2 = demoImage('Scene 2', tpl.palette.accent, tpl.palette.bg, tpl.w, tpl.h);
-  
-  S = {
-    v: 3,
-    draft: DRAFT,
-    width: tpl.w,
-    height: tpl.h,
-    tracks: [
-      { id: tt, type: 'text' },
-      { id: vt, type: 'video' },
-      { id: at, type: 'audio' }
-    ],
-    elements: [
-      { id: uid(), track: vt, type: 'photo', src: p1, name: 'Latar 1', start: 0, duration: 4.5, x: 0, y: 0, scale: 1, rotation: 0, alpha: 1, volume: 1, speed: 1, source_start: 0, fade_in: 0, fade_out: 0, keyframes: {}, transition: { key: 'demo:transition:zoomin', name: 'Zoom masuk', duration: 0.6 } },
-      { id: uid(), track: vt, type: 'photo', src: p2, name: 'Latar 2', start: 4.5, duration: 4.5, x: 0, y: 0, scale: 1, rotation: 0, alpha: 1, volume: 1, speed: 1, source_start: 0, fade_in: 0, fade_out: 0, keyframes: {} },
-      { id: uid(), track: tt, type: 'text', text: tpl.title, start: 0.3, duration: 4.0, x: 0, y: 0.35, scale: 1.1, rotation: 0, alpha: 1, volume: 1, color: tpl.palette.primary, font_size: 13, speed: 1, source_start: 0, fade_in: 0, fade_out: 0, keyframes: {}, tstyle: RAKIT.TS.title, anim: { in: { id: 'pop', d: 0.5 }, out: { id: 'fade', d: 0.4 } } },
-      { id: uid(), track: tt, type: 'text', text: tpl.subtitle, start: 1.0, duration: 3.3, x: 0, y: 0.05, scale: 1, rotation: 0, alpha: 1, volume: 1, color: '#FFFFFF', font_size: 8, speed: 1, source_start: 0, fade_in: 0, fade_out: 0, keyframes: {}, tstyle: RAKIT.TS.karaoke },
-      { id: uid(), track: tt, type: 'text', text: tpl.cta, start: 4.8, duration: 3.8, x: 0, y: -0.45, scale: 1, rotation: 0, alpha: 1, volume: 1, color: tpl.palette.accent, font_size: 10, speed: 1, source_start: 0, fade_in: 0, fade_out: 0, keyframes: {}, tstyle: RAKIT.TS.popsub, anim: { in: { id: 'bounce', d: 0.5 } } },
-      { id: uid(), track: at, type: 'audio', src: FILES[4]?.path || toneWav(), name: 'Musik latar', start: 0, duration: dur, x: 0, y: 0, scale: 1, rotation: 0, alpha: 1, volume: 0.8, speed: 1, source_start: 0, fade_in: 0.5, fade_out: 1.0, keyframes: {} }
-    ]
-  };
+  const vt = uid(), tt = uid(), at = uid(), ft = uid();
+
+  if (tpl.isJedagJedug) {
+    // Generate specialized edited photo sequence for Jedag Jedug
+    const photoConfigs = [
+      { name: 'Drop Beat 1', c1: '#FF0055', c2: '#2A0845', trx: { key: 'demo:transition:zoomin', name: 'Zoom masuk', duration: 0.3 } },
+      { name: 'Drop Beat 2', c1: '#00F2FE', c2: '#4FACFE', trx: { key: 'demo:transition:flash', name: 'Kilat putih', duration: 0.25 } },
+      { name: 'Drop Beat 3', c1: '#FFE66D', c2: '#FF4D6D', trx: { key: 'demo:transition:spin', name: 'Putar', duration: 0.3 } },
+      { name: 'Drop Beat 4', c1: '#3DD6E0', c2: '#1F4068', trx: { key: 'demo:transition:slideleft', name: 'Geser kiri', duration: 0.3 } },
+      { name: 'Drop Beat 5', c1: '#F38181', c2: '#FCE38A', trx: { key: 'demo:transition:zoomout', name: 'Zoom keluar', duration: 0.3 } },
+      { name: 'Drop Beat 6', c1: '#A8EDEA', c2: '#FED6E3', trx: { key: 'demo:transition:camerapush', name: 'Dorong Kamera', duration: 0.35 } },
+      { name: 'Drop Beat 7', c1: '#7F00FF', c2: '#E100FF', trx: { key: 'demo:transition:filmroll', name: 'Gulung Film', duration: 0.3 } },
+      { name: 'Drop Beat 8', c1: '#11998E', c2: '#38EF7D', trx: { key: 'demo:transition:wipe', name: 'Sapu', duration: 0.25 } },
+      { name: 'Drop Beat 9', c1: '#FF416C', c2: '#FF4B2B', trx: { key: 'demo:transition:blur', name: 'Kabur', duration: 0.3 } },
+      { name: 'Drop Beat 10', c1: '#3A1C71', c2: '#D76D77', trx: { key: 'demo:transition:fadeblack', name: 'Pudar hitam', duration: 0.3 } }
+    ];
+
+    const clipDur = 0.8;
+    const elements = [];
+    photoConfigs.forEach((pc, idx) => {
+      const src = demoImage(pc.name, pc.c1, pc.c2, tpl.w, tpl.h);
+      const startT = +(idx * clipDur).toFixed(3);
+      const isEven = idx % 2 === 0;
+      elements.push({
+        id: uid(),
+        track: vt,
+        type: 'photo',
+        src: src,
+        name: pc.name,
+        start: startT,
+        duration: clipDur,
+        x: 0, y: 0,
+        scale: isEven ? 1.05 : 1.15,
+        rotation: 0,
+        alpha: 1,
+        volume: 1,
+        speed: 1,
+        source_start: 0,
+        fade_in: 0,
+        fade_out: 0,
+        keyframes: {
+          scale: [{ t: 0, v: isEven ? 1.0 : 1.25 }, { t: clipDur, v: isEven ? 1.18 : 1.0 }]
+        },
+        transition: idx < photoConfigs.length - 1 ? pc.trx : undefined,
+        look: idx % 3 === 0 ? 'demo:filter:neon' : idx % 3 === 1 ? 'demo:filter:kontras' : undefined
+      });
+    });
+
+    // Effect layer (Flash & Glitch overlays for Jedag Jedug beats)
+    elements.push({
+      id: uid(),
+      track: ft,
+      type: 'effect',
+      lib: 'demo:effect:glitch',
+      name: 'Glitch RGB Beat',
+      start: 1.6,
+      duration: 1.6,
+      x: 0, y: 0, scale: 1, rotation: 0, alpha: 1, volume: 1, speed: 1, source_start: 0, fade_in: 0, fade_out: 0, keyframes: {}
+    });
+    elements.push({
+      id: uid(),
+      track: ft,
+      type: 'effect',
+      lib: 'demo:effect:flash',
+      name: 'Flash Kilat Beat',
+      start: 4.8,
+      duration: 1.6,
+      x: 0, y: 0, scale: 1, rotation: 0, alpha: 1, volume: 1, speed: 1, source_start: 0, fade_in: 0, fade_out: 0, keyframes: {}
+    });
+
+    // Jedag Jedug Title & Subtitles
+    elements.push({
+      id: uid(),
+      track: tt,
+      type: 'text',
+      text: 'JEDAG JEDUG VIRAL!',
+      start: 0.2,
+      duration: 3.2,
+      x: 0, y: 0.45,
+      scale: 1.25,
+      rotation: 0,
+      alpha: 1,
+      volume: 1,
+      color: '#FFE66D',
+      font_size: 14,
+      speed: 1,
+      source_start: 0,
+      fade_in: 0,
+      fade_out: 0,
+      keyframes: {},
+      tstyle: RAKIT.TS.neon || RAKIT.TS.title,
+      anim: { in: { id: 'bounce', d: 0.4 }, loop: { id: 'shake', d: 0.8 } }
+    });
+    elements.push({
+      id: uid(),
+      track: tt,
+      type: 'text',
+      text: 'DROP THE BEAT NOW ⚡',
+      start: 3.6,
+      duration: 4.0,
+      x: 0, y: -0.55,
+      scale: 1.1,
+      rotation: 0,
+      alpha: 1,
+      volume: 1,
+      color: '#3DD6E0',
+      font_size: 11,
+      speed: 1,
+      source_start: 0,
+      fade_in: 0,
+      fade_out: 0,
+      keyframes: {},
+      tstyle: RAKIT.TS.karaoke,
+      anim: { in: { id: 'pop', d: 0.3 } }
+    });
+
+    // High BPM Upbeat music from RAKIT audio engine
+    const totalDur = +(photoConfigs.length * clipDur).toFixed(2);
+    const audioTrack = {
+      id: uid(),
+      track: at,
+      type: 'audio',
+      src: '',
+      lib: 'music:upbeat',
+      name: 'Lari Malam (Upbeat 128 BPM)',
+      start: 0,
+      duration: totalDur,
+      x: 0, y: 0, scale: 1, rotation: 0, alpha: 1, volume: 0.95, speed: 1, source_start: 0, fade_in: 0.1, fade_out: 0.5, keyframes: {}
+    };
+    elements.push(audioTrack);
+
+    // Synthesize the real upbeat audio immediately via RAKIT.audio
+    RAKIT.audio.ensure('music:upbeat').then(wavUrl => {
+      audioTrack.src = wavUrl;
+      render();
+    }).catch(() => {
+      audioTrack.src = toneWav(totalDur);
+      render();
+    });
+
+    S = {
+      v: 3,
+      draft: DRAFT,
+      width: tpl.w,
+      height: tpl.h,
+      tracks: [
+        { id: tt, type: 'text' },
+        { id: ft, type: 'effect' },
+        { id: vt, type: 'video' },
+        { id: at, type: 'audio' }
+      ],
+      elements: elements
+    };
+  } else {
+    const dur = 9.0;
+    const p1 = demoImage('Scene 1', tpl.palette.bg, tpl.palette.accent, tpl.w, tpl.h);
+    const p2 = demoImage('Scene 2', tpl.palette.accent, tpl.palette.bg, tpl.w, tpl.h);
+
+    S = {
+      v: 3,
+      draft: DRAFT,
+      width: tpl.w,
+      height: tpl.h,
+      tracks: [
+        { id: tt, type: 'text' },
+        { id: vt, type: 'video' },
+        { id: at, type: 'audio' }
+      ],
+      elements: [
+        { id: uid(), track: vt, type: 'photo', src: p1, name: 'Latar 1', start: 0, duration: 4.5, x: 0, y: 0, scale: 1, rotation: 0, alpha: 1, volume: 1, speed: 1, source_start: 0, fade_in: 0, fade_out: 0, keyframes: {}, transition: { key: 'demo:transition:zoomin', name: 'Zoom masuk', duration: 0.6 } },
+        { id: uid(), track: vt, type: 'photo', src: p2, name: 'Latar 2', start: 4.5, duration: 4.5, x: 0, y: 0, scale: 1, rotation: 0, alpha: 1, volume: 1, speed: 1, source_start: 0, fade_in: 0, fade_out: 0, keyframes: {} },
+        { id: uid(), track: tt, type: 'text', text: tpl.title, start: 0.3, duration: 4.0, x: 0, y: 0.35, scale: 1.1, rotation: 0, alpha: 1, volume: 1, color: tpl.palette.primary, font_size: 13, speed: 1, source_start: 0, fade_in: 0, fade_out: 0, keyframes: {}, tstyle: RAKIT.TS.title, anim: { in: { id: 'pop', d: 0.5 }, out: { id: 'fade', d: 0.4 } } },
+        { id: uid(), track: tt, type: 'text', text: tpl.subtitle, start: 1.0, duration: 3.3, x: 0, y: 0.05, scale: 1, rotation: 0, alpha: 1, volume: 1, color: '#FFFFFF', font_size: 8, speed: 1, source_start: 0, fade_in: 0, fade_out: 0, keyframes: {}, tstyle: RAKIT.TS.karaoke },
+        { id: uid(), track: tt, type: 'text', text: tpl.cta, start: 4.8, duration: 3.8, x: 0, y: -0.45, scale: 1, rotation: 0, alpha: 1, volume: 1, color: tpl.palette.accent, font_size: 10, speed: 1, source_start: 0, fade_in: 0, fade_out: 0, keyframes: {}, tstyle: RAKIT.TS.popsub, anim: { in: { id: 'bounce', d: 0.5 } } },
+        { id: uid(), track: at, type: 'audio', src: FILES[4]?.path || toneWav(), name: 'Musik latar', start: 0, duration: dur, x: 0, y: 0, scale: 1, rotation: 0, alpha: 1, volume: 0.8, speed: 1, source_start: 0, fade_in: 0.5, fade_out: 1.0, keyframes: {} }
+      ]
+    };
+  }
+
   DEMO = false;
   $('#demoTag').hidden = true;
   norm();
@@ -878,6 +1049,10 @@ $('#toolChromaKey').onclick = () => {
   tab = 'media';
   renderTabs();
   Studio.toast('Pilih klip video/foto di timeline, lalu aktifkan Chroma Key di tab Video.');
+};
+$('#toolJedagJedug').onclick = () => {
+  const jjTpl = TEMPLATE_PRESETS.find(x => x.id === 'jedag_jedug_viral');
+  if (jjTpl) applyTemplateToProject(jjTpl);
 };
 $('#toolSmartTemplates').onclick = () => switchDeskView('templates');
 
