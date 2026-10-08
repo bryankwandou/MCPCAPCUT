@@ -116,12 +116,12 @@ header { margin: 0 calc(-1 * var(--gap)) var(--gap); border-bottom-color: #000; 
 #playhead::before { left: -6px; }
 #playhead.drag, #playhead:has(.ph-head:hover) { background: var(--accent); }
 /* ---- desktop-editor workflow layer ---- */
-header { justify-content: space-between; }
-header .hl, header .hr { flex: 1 1 0; display: flex; align-items: center; gap: 6px; min-width: 0; }
-header .hr { justify-content: flex-end; }
-#pname { display: grid; justify-items: center; line-height: 1.2; min-width: 0; max-width: 44%; text-align: center; }
-#pnameT { font-size: 13px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
-#status { font-size: 10.5px; max-width: 100%; }
+header { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 0 14px; min-width: 0; }
+header .hl { display: flex; align-items: center; gap: 8px; flex-shrink: 0; min-width: 0; }
+header .hr { display: flex; align-items: center; gap: 8px; flex-shrink: 0; margin-left: auto; }
+#pname { display: flex; flex-direction: column; align-items: center; justify-content: center; line-height: 1.2; flex: 1; min-width: 140px; max-width: 380px; text-align: center; }
+#pnameT { font-size: 13px; font-weight: 700; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
+#status { font-size: 10.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 100%; }
 .menuw { position: relative; }
 #menuBtn { padding: 5px 10px; font-size: 13px; }
 .pop { position: absolute; top: calc(100% + 6px); left: 0; z-index: 60; background: var(--surface-2); border: 1px solid var(--line); border-radius: 8px; padding: 4px; min-width: 230px; display: grid; box-shadow: 0 12px 32px #000a; }
@@ -724,6 +724,54 @@ const TEMPLATE_PRESETS = [
     title: 'Momen Tak Terlupakan',
     subtitle: 'Kompilasi foto terbaik tahun ini',
     cta: 'Simpan kenanganmu'
+  },
+  {
+    id: 'podcast_clip',
+    cat: 'reels',
+    name: 'Podcast Highlight Box (9:16)',
+    desc: 'Format video klip podcast dengan lower-third nama pembicara, frame visualizer audio, dan auto-caption pop dinamis.',
+    ratio: '9:16',
+    w: 1080, h: 1920,
+    palette: { primary: '#FFFFFF', accent: '#3DD6E0', bg: '#0A0C14' },
+    title: 'HIGHLIGHT PODCAST #12',
+    subtitle: 'Bincang Bisnis &middot; Rahasia Skala Cepat',
+    cta: 'Dengarkan episode penuh'
+  },
+  {
+    id: 'gaming_highlight',
+    cat: 'reels',
+    name: 'Gaming Montage Epic (9:16)',
+    desc: 'Montase gameplay aksi cepat dengan beat marker cut, shake effect, dan judul retro neon tebal.',
+    ratio: '9:16',
+    w: 1080, h: 1920,
+    palette: { primary: '#FF4D6D', accent: '#FFE66D', bg: '#0D0814' },
+    title: 'CLUTCH 1 VS 4 EPIC!',
+    subtitle: 'Detik-detik penentuan kemenangan',
+    cta: 'Drop like & komentar!'
+  },
+  {
+    id: 'fashion_lookbook',
+    cat: 'promo',
+    name: 'Fashion / OOTD Lookbook (9:16)',
+    desc: 'Katalog pakaian aesthetic minimalis dengan label harga bergerak halus dan transisi sinematik.',
+    ratio: '9:16',
+    w: 1080, h: 1920,
+    palette: { primary: '#F7F3E8', accent: '#D95D39', bg: '#1B1A17' },
+    title: 'AUTUMN / WINTER 2026',
+    subtitle: 'Outfit Inspirasi Harian &middot; Edisi Terbatas',
+    cta: 'Cek koleksi sekarang'
+  },
+  {
+    id: 'breaking_news',
+    cat: 'youtube',
+    name: 'Breaking News / Info Terkini (16:9)',
+    desc: 'Template berita informatif dengan ticker bar bawah, ticker waktu, dan frame headline berdampak tinggi.',
+    ratio: '16:9',
+    w: 1920, h: 1080,
+    palette: { primary: '#FFFFFF', accent: '#FF3333', bg: '#0E1017' },
+    title: 'KABAR TERKINI HARI INI',
+    subtitle: 'Laporan Eksklusif &middot; Informasi Terverifikasi',
+    cta: 'Pantau terus perkembangannya'
   }
 ];
 
@@ -1664,6 +1712,9 @@ function startLiveAutoCaption(subStyle = 'karaoke') {
     popsub: { tstyle: RAKIT.TS.popsub, color: '#111111', fs: 7.0, anim: { in: { id: 'bounce', d: 0.3 }, out: { id: 'fade', d: 0.2 } } },
     pillsub: { tstyle: RAKIT.TS.pillsub, color: '#3DD6E0', fs: 7.0, anim: { in: { id: 'wipe', d: 0.3 }, out: { id: 'fade', d: 0.2 } } },
     boldstroke: { tstyle: RAKIT.TS.boldstroke, color: '#FFFFFF', fs: 8.0, anim: { in: { id: 'zoomIn', d: 0.25 }, out: { id: 'fade', d: 0.2 } } },
+    neon: { tstyle: RAKIT.TS.neon, color: '#E9FBFF', fs: 8.0, anim: { in: { id: 'blur', d: 0.3 }, out: { id: 'fade', d: 0.2 } } },
+    marker: { tstyle: RAKIT.TS.marker, color: '#151515', fs: 7.5, anim: { in: { id: 'wipe', d: 0.25 }, out: { id: 'fade', d: 0.2 } } },
+    retro: { tstyle: RAKIT.TS.retro, color: '#FFD23F', fs: 8.0, anim: { in: { id: 'slideUp', d: 0.3 }, out: { id: 'fade', d: 0.2 } } },
     sub: { tstyle: RAKIT.TS.sub, color: '#FFFFFF', fs: 6.5, anim: { in: { id: 'fade', d: 0.2 }, out: { id: 'fade', d: 0.2 } } }
   };
   const cfg = styleMap[subStyle] || styleMap.karaoke;
@@ -2276,6 +2327,9 @@ function captionsFromScript(text, presetStyle = 'karaoke') { // one caption per 
     popsub: { tstyle: RAKIT.TS.popsub, color: '#111111', fs: 7.0, anim: { in: { id: 'bounce', d: 0.3 }, out: { id: 'fade', d: 0.2 } } },
     pillsub: { tstyle: RAKIT.TS.pillsub, color: '#3DD6E0', fs: 7.0, anim: { in: { id: 'wipe', d: 0.3 }, out: { id: 'fade', d: 0.2 } } },
     boldstroke: { tstyle: RAKIT.TS.boldstroke, color: '#FFFFFF', fs: 8.0, anim: { in: { id: 'zoomIn', d: 0.25 }, out: { id: 'fade', d: 0.2 } } },
+    neon: { tstyle: RAKIT.TS.neon, color: '#E9FBFF', fs: 8.0, anim: { in: { id: 'blur', d: 0.3 }, out: { id: 'fade', d: 0.2 } } },
+    marker: { tstyle: RAKIT.TS.marker, color: '#151515', fs: 7.5, anim: { in: { id: 'wipe', d: 0.25 }, out: { id: 'fade', d: 0.2 } } },
+    retro: { tstyle: RAKIT.TS.retro, color: '#FFD23F', fs: 8.0, anim: { in: { id: 'slideUp', d: 0.3 }, out: { id: 'fade', d: 0.2 } } },
     sub: { tstyle: RAKIT.TS.sub, color: '#FFFFFF', fs: 6.5, anim: { in: { id: 'fade', d: 0.2 }, out: { id: 'fade', d: 0.2 } } }
   };
   const cfg = styleMap[presetStyle] || styleMap.karaoke;
@@ -2621,12 +2675,15 @@ function renderMedia() {
     note('Ketik naskah atau aktifkan transkripsi mic untuk membuat subtitle video otomatis bergaya CapCut Desktop.');
     B.insertAdjacentHTML('beforeend', `
       <div style="display:grid;gap:8px">
-        <label style="font-size:11px;color:var(--muted)">Pilih Gaya Subtitle CapCut:</label>
+        <label style="font-size:11px;color:var(--muted)">Pilih Gaya Subtitle CapCut Desktop:</label>
         <div style="display:flex;gap:6px;flex-wrap:wrap" id="capPresetChips">
           <button type="button" class="btn on" data-style="karaoke" style="font-size:11px">${icon('sparkles')} Karaoke Kuning</button>
           <button type="button" class="btn" data-style="popsub" style="font-size:11px">${icon('star')} Pop-Up Putih</button>
           <button type="button" class="btn" data-style="pillsub" style="font-size:11px">${icon('wand')} Cyan Pill Box</button>
           <button type="button" class="btn" data-style="boldstroke" style="font-size:11px">${icon('font')} Bold Stroke</button>
+          <button type="button" class="btn" data-style="neon" style="font-size:11px">${icon('bolt')} Neon Cyber</button>
+          <button type="button" class="btn" data-style="marker" style="font-size:11px">${icon('pen')} Stabilo Kuning</button>
+          <button type="button" class="btn" data-style="retro" style="font-size:11px">${icon('star')} Retro 3D</button>
         </div>
         <textarea id="script" rows="4" placeholder="Halo semuanya!\nSelamat datang di video saya.\nJangan lupa like dan follow!"></textarea>
         <button type="button" class="btn primary" id="scriptGo">${icon('plus')} Buat Auto-Caption dari Naskah</button>
