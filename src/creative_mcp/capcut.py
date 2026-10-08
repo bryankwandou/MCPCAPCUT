@@ -83,7 +83,8 @@ def sync_root_meta(name: str, duration_us: int = 0) -> None:
         target_str = target.as_posix()
         root_str = root.as_posix()
         cover_str = cover_file.as_posix() if cover_file.exists() else ""
-        json_str = json_file.as_posix() if json_file.exists() else ""
+        json_str = f"{target_str}\\{json_file.name}" if (platform.system() == "Windows" and json_file.exists()) else (json_file.as_posix() if json_file.exists() else "")
+        cover_str = f"{target_str}\\{cover_file.name}" if (platform.system() == "Windows" and cover_file.exists()) else (cover_file.as_posix() if cover_file.exists() else "")
 
         if not meta_file.exists():
             data = {"all_draft_store": [], "draft_ids": 0, "root_path": root_str}
@@ -179,41 +180,107 @@ def sync_root_meta(name: str, duration_us: int = 0) -> None:
         if meta_file.exists():
             shutil.copy2(meta_file, meta_file.with_suffix(".json.bak"))
         meta_file.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
-    except Exception as e:
+    except Exception:
         pass
 
 
 def save(name: str, data: dict) -> None:
     f = _content_file(name)
     shutil.copy2(f, f.with_suffix(".json.bak"))
+
+    # Ensure native platform info
+    os_name = "windows" if platform.system() == "Windows" else "mac"
+    plat = {
+        "app_id": 0,
+        "app_source": "cc",
+        "app_version": "9.5.0",
+        "device_id": "",
+        "hard_disk_id": "",
+        "mac_address": "",
+        "os": os_name,
+        "os_version": platform.version()
+    }
+    data["platform"] = plat
+    data["last_modified_platform"] = plat
+
     raw_bytes = json.dumps(data, ensure_ascii=False, indent=2).encode("utf-8")
     f.write_bytes(raw_bytes)
-    # Also sync draft_info.json
-    (f.parent / "draft_info.json").write_bytes(raw_bytes)
-    # Also sync Timelines architecture if project uses it
-    draft_id = data.get("id")
+    draft_id = data.get("id") or str(uuid.uuid4()).lower()
+
+    # Write separate lightweight draft_info.json schema
+    info_data = {
+        "id": draft_id,
+        "name": name,
+        "duration": data.get("duration", 0),
+        "fps": data.get("fps", 30),
+        "canvas_config": data.get("canvas_config", {}),
+        "platform": {
+            "app_source": "cc",
+            "app_version": "9.5.0",
+            "os": os_name
+        },
+        "tracks": data.get("tracks", []),
+        "materials": data.get("materials", {}),
+        "extra_info": data.get("extra_info") or {}
+    }
+    (f.parent / "draft_info.json").write_bytes(json.dumps(info_data, ensure_ascii=False, indent=2).encode("utf-8"))
+
+    # Sync template-2.tmp cache
+    (f.parent / "template-2.tmp").write_bytes(raw_bytes)
+
+    # Sync Timelines architecture
     if draft_id:
         tl_dir = f.parent / "Timelines"
-        if tl_dir.exists():
-            proj_f = tl_dir / "project.json"
-            if proj_f.exists():
-                try:
-                    p = json.loads(proj_f.read_text(encoding="utf-8"))
-                    p["id"] = draft_id
-                    p["main_timeline_id"] = draft_id
-                    if p.get("timelines"):
-                        p["timelines"][0]["id"] = draft_id
-                    proj_f.write_text(json.dumps(p, ensure_ascii=False, indent=2), encoding="utf-8")
-                except Exception:
-                    pass
-            tl_sub = tl_dir / draft_id
-            tl_sub.mkdir(parents=True, exist_ok=True)
-            (tl_sub / "draft_content.json").write_bytes(raw_bytes)
-            (tl_sub / "draft_info.json").write_bytes(raw_bytes)
-            # Remove any stale timeline folder
-            for sub in tl_dir.iterdir():
-                if sub.is_dir() and sub.name != draft_id:
-                    shutil.rmtree(sub, ignore_errors=True)
+        tl_dir.mkdir(parents=True, exist_ok=True)
+        now_us = int(time.time() * US)
+        proj_p = {
+            "config": {
+                "color_space": -1,
+                "mixed_track_mode_on": False,
+                "render_index_track_mode_on": False,
+                "use_float_render": False
+            },
+            "create_time": now_us,
+            "id": draft_id,
+            "main_timeline_id": draft_id,
+            "timelines": [
+                {
+                    "create_time": now_us,
+                    "id": draft_id,
+                    "is_marked_delete": False,
+                    "name": "Timeline 01",
+                    "update_time": now_us
+                }
+            ],
+            "update_time": now_us,
+            "version": 0
+        }
+        (tl_dir / "project.json").write_bytes(json.dumps(proj_p, ensure_ascii=False, indent=2).encode("utf-8"))
+
+        tl_sub = tl_dir / draft_id
+        tl_sub.mkdir(parents=True, exist_ok=True)
+        (tl_sub / "draft_content.json").write_bytes(raw_bytes)
+        (tl_sub / "template-2.tmp").write_bytes(raw_bytes)
+        if (tl_sub / "draft_info.json").exists():
+            (tl_sub / "draft_info.json").unlink()
+
+        # Remove stale timeline folders
+        for sub in tl_dir.iterdir():
+            if sub.is_dir() and sub.name != draft_id:
+                shutil.rmtree(sub, ignore_errors=True)
+
+    # Sync draft_meta_info.json
+    target_meta = f.parent / "draft_meta_info.json"
+    if target_meta.exists():
+        try:
+            m = json.loads(target_meta.read_text(encoding="utf-8"))
+            m["draft_id"] = draft_id
+            m["draft_timeline_materials_size_"] = len(raw_bytes)
+            m["tm_duration"] = data.get("duration", 0)
+            target_meta.write_bytes(json.dumps(m, ensure_ascii=False, indent=2).encode("utf-8"))
+        except Exception:
+            pass
+
     sync_root_meta(name, data.get("duration", 0))
 
 
