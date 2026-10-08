@@ -27,6 +27,7 @@ CAPCUT_TEMPLATES = {
     "slideshow": "Slideshow foto/video dengan caption per slide dan musik.",
     "quotes": "Quotes/lirik: satu background, beberapa baris teks bergantian.",
     "youtube_intro": "Intro YouTube 16:9: judul besar + subjudul di atas klip.",
+    "jedagjedug": "Jedag-Jedug beat viral 9:16: potongan beat cepat, 10 transisi bergantian, zoom pulse keyframe, subtitle pop, musik upbeat.",
 }
 CANVA_TEMPLATES = {
     "instagram_post": (1080, 1350, "Poster feed Instagram 4:5"),
@@ -76,7 +77,40 @@ def build_capcut(template: str, name: str, media: list[str], title: str = "",
                     "volume": 1.0, "color": color or pal["text"], "font_size": size})
 
     t = 0.0
-    if template == "promo":
+    if template == "jedagjedug":
+        beat_dur = min(clip_seconds, 0.8)
+        transitions = [
+            ("transition:zoomin", "Zoom Masuk"),
+            ("transition:flash", "Kilat Putih"),
+            ("transition:spin", "Putar"),
+            ("transition:slideleft", "Geser Kiri"),
+            ("transition:zoomout", "Zoom Keluar"),
+            ("transition:camerapush", "Dorong Kamera"),
+            ("transition:filmroll", "Gulung Film"),
+            ("transition:wipe", "Sapu"),
+            ("transition:blur", "Kabur Sinematik"),
+            ("transition:fadeblack", "Pudar Hitam"),
+        ]
+        if title:
+            text(title, 0, min(3.0, len(media) * beat_dur), y=0.55, size=15, color=pal["primary"])
+        for i, m in enumerate(media):
+            t_key, t_name = transitions[i % len(transitions)]
+            is_even = (i % 2 == 0)
+            kfs = {
+                "scale": [
+                    {"t": 0.0, "v": 1.05 if is_even else 1.25},
+                    {"t": +(beat_dur * 0.35), "v": 1.25 if is_even else 1.08},
+                    {"t": +(beat_dur), "v": 1.1 if is_even else 1.0}
+                ]
+            }
+            trx_obj = {"key": f"demo:{t_key}", "name": t_name, "duration": 0.25}
+            clip(m, t, beat_dur, transition=trx_obj, keyframes=kfs)
+            cap_text = captions[i] if i < len(captions) else f"BEAT DROP {i+1}"
+            text(cap_text, t, beat_dur, y=-0.65, size=9.5, color=pal["accent"] if is_even else pal["primary"])
+            t += beat_dur
+        if cta:
+            text(cta, max(0, t - 1.5), 1.5, y=0.0, size=13, color=pal["accent"])
+    elif template == "promo":
         offset = 1 if title else 0  # first clip carries the title, the rest carry captions
         for i, m in enumerate(media):
             clip(m, t, clip_seconds)

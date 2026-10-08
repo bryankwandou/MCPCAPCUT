@@ -70,10 +70,109 @@ def load(name: str) -> dict:
                          "as JSON. Use the desktop_* tools to edit it live instead.") from e
 
 
+def sync_root_meta(name: str, duration_us: int = 0) -> None:
+    """Register or update this draft in CapCut Desktop's master project index (root_meta_info.json).
+    Without this, CapCut Desktop will not display the project in its Projects list on the desktop app."""
+    try:
+        root = drafts_dir()
+        meta_file = root / "root_meta_info.json"
+        target = root / name
+        cover_file = target / "draft_cover.jpg"
+        json_file = target / "draft_content.json"
+        
+        if not meta_file.exists():
+            data = {"all_draft_store": [], "draft_ids": 0, "root_path": str(root).replace("\\", "/")}
+        else:
+            try:
+                data = json.loads(meta_file.read_text(encoding="utf-8"))
+            except Exception:
+                data = {"all_draft_store": [], "draft_ids": 0, "root_path": str(root).replace("\\", "/")}
+
+        store = data.setdefault("all_draft_store", [])
+        now_us = int(time.time() * US)
+
+        draft_id = None
+        target_meta = target / "draft_meta_info.json"
+        if target_meta.exists():
+            try:
+                m = json.loads(target_meta.read_text(encoding="utf-8"))
+                draft_id = m.get("draft_id")
+            except Exception:
+                pass
+        if not draft_id:
+            draft_id = str(uuid.uuid4()).lower()
+
+        target_str = str(target).replace("\\", "/")
+        found = None
+        for item in store:
+            if item.get("draft_name") == name or item.get("draft_fold_path", "").replace("\\", "/") == target_str:
+                found = item
+                break
+
+        if found:
+            store.remove(found)
+            found["tm_draft_modified"] = now_us
+            if duration_us > 0:
+                found["tm_duration"] = duration_us
+            if cover_file.exists():
+                found["draft_cover"] = str(cover_file).replace("\\", "/")
+            if json_file.exists():
+                found["draft_timeline_materials_size"] = json_file.stat().st_size
+            store.insert(0, found)
+        else:
+            entry = {
+                "cloud_draft_cover": False,
+                "cloud_draft_sync": False,
+                "draft_cloud_last_action_download": False,
+                "draft_cloud_purchase_info": "",
+                "draft_cloud_template_id": "",
+                "draft_cloud_tutorial_info": "",
+                "draft_cloud_videocut_purchase_info": "",
+                "draft_cover": str(cover_file).replace("\\", "/") if cover_file.exists() else "",
+                "draft_fold_path": target_str,
+                "draft_id": draft_id,
+                "draft_is_ai_shorts": False,
+                "draft_is_cloud_temp_draft": False,
+                "draft_is_invisible": False,
+                "draft_is_pippit_draft": False,
+                "draft_is_web_article_video": False,
+                "draft_json_file": str(json_file).replace("\\", "/"),
+                "draft_name": name,
+                "draft_new_version": "",
+                "draft_root_path": str(root).replace("\\", "/"),
+                "draft_timeline_materials_size": json_file.stat().st_size if json_file.exists() else 0,
+                "draft_type": "",
+                "draft_web_article_video_enter_from": "",
+                "pippit_avatar_url": "",
+                "pippit_extra_info": "",
+                "pippit_id": "",
+                "pippit_user_name": "",
+                "streaming_edit_draft_ready": True,
+                "tm_draft_cloud_completed": "",
+                "tm_draft_cloud_entry_id": 0,
+                "tm_draft_cloud_modified": 0,
+                "tm_draft_cloud_parent_entry_id": 0,
+                "tm_draft_cloud_space_id": 0,
+                "tm_draft_cloud_user_id": 0,
+                "tm_draft_create": now_us,
+                "tm_draft_modified": now_us,
+                "tm_draft_removed": 0,
+                "tm_duration": duration_us,
+            }
+            store.insert(0, entry)
+
+        if meta_file.exists():
+            shutil.copy2(meta_file, meta_file.with_suffix(".json.bak"))
+        meta_file.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+    except Exception as e:
+        pass
+
+
 def save(name: str, data: dict) -> None:
     f = _content_file(name)
     shutil.copy2(f, f.with_suffix(".json.bak"))
     f.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+    sync_root_meta(name, data.get("duration", 0))
 
 
 def _empty_draft(width: int, height: int, fps: float) -> dict:
@@ -123,6 +222,7 @@ def create_draft(name: str, width: int = 1080, height: int = 1920, fps: float = 
         old.update(meta)
         meta = old
     meta_file.write_text(json.dumps(meta, ensure_ascii=False), encoding="utf-8")
+    sync_root_meta(name)
     return {"name": name, "path": str(target)}
 
 

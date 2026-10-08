@@ -94,6 +94,9 @@ def from_draft(name: str) -> dict:
 def apply_to_draft(scene: dict) -> dict:
     """Write an edited scene back into the CapCut draft (one load, one save, with backup)."""
     name = scene["draft"]
+    target_dir = capcut.drafts_dir() / name
+    if not target_dir.exists():
+        capcut.create_draft(name, width=int(scene.get("width") or 1080), height=int(scene.get("height") or 1920))
     data = capcut.load(name)
     mats, group_of = _materials(data)
     by_id = {t["id"]: t for t in data["tracks"]}
