@@ -314,11 +314,65 @@ textarea#script { min-height: 120px; width: 100%; }
 .mcp-dot { width: 8px; height: 8px; border-radius: 50%; background: #777; display: inline-block; }
 .mcp-dot.on { background: #3dd68c; box-shadow: 0 0 8px #3dd68c; }
 .mcp-dot.off { background: #ef5b5b; box-shadow: 0 0 6px #ef5b5b; }
+
+/* CapCut Desktop Navigation & Views */
+.desk-nav { display: flex; align-items: center; gap: 4px; background: #13151b; padding: 2px 4px; border-radius: 8px; border: 1px solid #ffffff12; }
+.desk-nav button { background: none; border: 0; color: var(--muted); padding: 5px 12px; border-radius: 6px; font-size: 12px; font-weight: 700; display: inline-flex; align-items: center; gap: 6px; cursor: pointer; transition: all 120ms ease; }
+.desk-nav button:hover { color: var(--fg); background: #ffffff0a; }
+.desk-nav button.on { color: #fff; background: #262933; box-shadow: 0 2px 6px #0004; }
+.desk-nav button.on svg.i { stroke: var(--accent); }
+
+.desk-view-overlay { position: fixed; inset: 44px 0 0 0; background: #0c0d12; z-index: 45; overflow-y: auto; padding: 24px 32px 60px; display: grid; gap: 24px; align-content: start; }
+.desk-view-overlay[hidden] { display: none !important; }
+.desk-hero { background: linear-gradient(135deg, #1b202c 0%, #0e1219 100%); border: 1px solid #ffffff14; border-radius: 14px; padding: 28px 32px; display: flex; align-items: center; justify-content: space-between; gap: 24px; box-shadow: 0 10px 30px #0006; }
+.desk-hero-title { font-size: 24px; font-weight: 800; color: #fff; margin-bottom: 6px; font-family: var(--f-display); }
+.desk-hero-desc { font-size: 13px; color: var(--muted); max-width: 580px; margin: 0; line-height: 1.5; }
+.desk-hero-action { display: flex; flex-direction: column; align-items: flex-end; gap: 10px; }
+.desk-new-btn { background: var(--accent); color: var(--accent-ink); border: 0; padding: 12px 24px; border-radius: 10px; font-size: 14px; font-weight: 800; display: inline-flex; align-items: center; gap: 8px; cursor: pointer; box-shadow: 0 4px 16px rgba(61, 214, 224, 0.35); transition: transform 120ms ease; }
+.desk-new-btn:hover { transform: scale(1.02); filter: brightness(1.08); }
+
+.desk-section-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px; }
+.desk-section-head h3 { font-size: 16px; font-weight: 700; color: #fff; display: flex; align-items: center; gap: 8px; }
+.desk-quick-tools { display: grid; grid-template-columns: repeat(auto-fit, minmax(170px, 1fr)); gap: 12px; margin-bottom: 24px; }
+.desk-tool-card { background: #161820; border: 1px solid #ffffff0d; border-radius: 10px; padding: 14px 16px; display: flex; align-items: center; gap: 12px; cursor: pointer; transition: all 140ms ease; text-align: left; }
+.desk-tool-card:hover { border-color: var(--accent); background: #1c1f2a; transform: translateY(-2px); }
+.desk-tool-icon { width: 38px; height: 38px; border-radius: 8px; background: #ffffff0a; display: flex; align-items: center; justify-content: center; color: var(--accent); flex-shrink: 0; }
+.desk-tool-info b { font-size: 12.5px; color: #fff; display: block; margin-bottom: 2px; }
+.desk-tool-info span { font-size: 11px; color: var(--muted); display: block; }
+
+.desk-proj-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(230px, 1fr)); gap: 16px; }
+.desk-proj-card { background: #15171e; border: 1px solid #ffffff0d; border-radius: 10px; overflow: hidden; display: flex; flex-direction: column; cursor: pointer; transition: all 140ms ease; position: relative; }
+.desk-proj-card:hover { border-color: #3dd6e066; transform: translateY(-3px); box-shadow: 0 8px 24px #0008; }
+.desk-proj-thumb { aspect-ratio: 16/9; background: #0a0b0e; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; }
+.desk-proj-thumb canvas, .desk-proj-thumb img { width: 100%; height: 100%; object-fit: cover; }
+.desk-proj-dur { position: absolute; right: 8px; bottom: 8px; background: rgba(0,0,0,0.8); font: 10.5px var(--f-mono); color: #fff; padding: 2px 6px; border-radius: 4px; }
+.desk-proj-body { padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; }
+.desk-proj-title { font-size: 13px; font-weight: 700; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.desk-proj-meta { font-size: 11px; color: var(--muted); display: flex; align-items: center; justify-content: space-between; }
+.desk-proj-actions { display: flex; gap: 4px; margin-top: 6px; border-top: 1px solid #ffffff0d; padding-top: 6px; }
+.desk-proj-actions button { background: none; border: 0; color: var(--muted); font-size: 11px; padding: 3px 6px; border-radius: 4px; cursor: pointer; }
+.desk-proj-actions button:hover { color: #fff; background: #ffffff14; }
+
+.desk-tpl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+.desk-tpl-card { background: #15171e; border: 1px solid #ffffff0d; border-radius: 12px; overflow: hidden; display: flex; flex-direction: column; transition: all 140ms ease; }
+.desk-tpl-card:hover { border-color: var(--accent); transform: translateY(-3px); box-shadow: 0 10px 24px #0008; }
+.desk-tpl-cover { aspect-ratio: 9/12; background: linear-gradient(135deg, #1c2635, #11141c); position: relative; overflow: hidden; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 20px; text-align: center; }
+.desk-tpl-body { padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; }
+.desk-tpl-body b { font-size: 13.5px; color: #fff; }
+.desk-tpl-body p { font-size: 11.5px; color: var(--muted); margin: 0; line-height: 1.4; }
+.desk-tpl-btn { background: #ffffff10; border: 1px solid #ffffff1a; color: #fff; padding: 8px 12px; border-radius: 7px; font-weight: 700; font-size: 12px; cursor: pointer; display: flex; align-items: center; justify-content: center; gap: 6px; margin-top: 6px; transition: background 120ms ease; }
+.desk-tpl-btn:hover { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
 </style>
 </head>
 <body>
 <header>
-  <div class="hl"><button class="btn ghost icon" id="home" title="Beranda" aria-label="Beranda"></button>
+  <div class="hl">
+    <div class="desk-nav" role="tablist" aria-label="Navigasi Desktop CapCut">
+      <button class="on" id="navEditor" data-view="editor" role="tab" aria-selected="true" title="Editor Timeline Video"></button>
+      <button id="navHome" data-view="home" role="tab" aria-selected="false" title="Beranda CapCut"></button>
+      <button id="navProjects" data-view="projects" role="tab" aria-selected="false" title="Daftar Proyek Video"></button>
+      <button id="navTemplates" data-view="templates" role="tab" aria-selected="false" title="Katalog Templat Siap Pakai"></button>
+    </div>
     <div class="menuw"><button class="btn ghost" id="menuBtn" aria-haspopup="menu" aria-expanded="false">Menu</button>
       <div id="menuPop" class="pop" role="menu" hidden>
         <button data-m="new" role="menuitem"></button>
@@ -338,6 +392,91 @@ textarea#script { min-height: 120px; width: 100%; }
   <div id="pname"><b id="pnameT">Project</b><span id="status"></span></div>
   <div class="hr"><button class="btn primary" id="export"></button></div>
 </header>
+
+<!-- CapCut Desktop View Overlays -->
+<main id="viewHome" class="desk-view-overlay" hidden>
+  <section class="desk-hero">
+    <div>
+      <div class="desk-hero-title">CapCut Studio &middot; Desktop Web Pro</div>
+      <p class="desk-hero-desc">Editor video desktop profesional berbasis WebAssembly &amp; File System API. Terhubung langsung dengan CapCut Desktop PC dan Agent MCP kreatif.</p>
+    </div>
+    <div class="desk-hero-action">
+      <button class="desk-new-btn" id="homeNewProjBtn"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg> Mulai Proyek Baru</button>
+      <div style="display:flex;gap:6px">
+        <button class="btn" id="homeConnectFolderBtn"><svg class="i" viewBox="0 0 24 24"><path d="M3 6a1 1 0 0 1 1-1h5l2 2h9a1 1 0 0 1 1 1v10a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1z"/></svg> Buka Folder CapCut</button>
+        <button class="btn" id="homeConnectMcpBtn"><svg class="i" viewBox="0 0 24 24"><path d="M10 14a5 5 0 0 0 7 0l3-3a5 5 0 0 0-7-7l-1 1M14 10a5 5 0 0 0-7 0l-3 3a5 5 0 0 0 7 7l1-1"/></svg> Sambungkan MCP</button>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="desk-section-head">
+      <h3>Alat Cepat Kreatif</h3>
+    </div>
+    <div class="desk-quick-tools">
+      <div class="desk-tool-card" id="toolAutoCaption">
+        <div class="desk-tool-icon"><svg class="i" viewBox="0 0 24 24"><path d="M5 6V4h14v2M12 4v16M9 20h6"/></svg></div>
+        <div class="desk-tool-info"><b>Auto-Caption AI</b><span>Generate subtitle instan</span></div>
+      </div>
+      <div class="desk-tool-card" id="toolTts">
+        <div class="desk-tool-icon"><svg class="i" viewBox="0 0 24 24"><path d="M4 9h4l5-4v14l-5-4H4zM16.5 8.5a5 5 0 0 1 0 7"/></svg></div>
+        <div class="desk-tool-info"><b>Text to Speech</b><span>Ubah naskah jadi suara</span></div>
+      </div>
+      <div class="desk-tool-card" id="toolScriptToVideo">
+        <div class="desk-tool-icon"><svg class="i" viewBox="0 0 24 24"><path d="M4 4h16v16H4zM8 4v16M16 4v16"/></svg></div>
+        <div class="desk-tool-info"><b>Naskah ke Video</b><span>Susun klip otomatis</span></div>
+      </div>
+      <div class="desk-tool-card" id="toolChromaKey">
+        <div class="desk-tool-icon"><svg class="i" viewBox="0 0 24 24"><path d="M9 4a5 5 0 1 0 0 10 5 5 0 0 0 0-10zM15 10a5 5 0 1 0 0 10 5 5 0 0 0 0-10z"/></svg></div>
+        <div class="desk-tool-info"><b>Chroma Key</b><span>Hapus green screen</span></div>
+      </div>
+      <div class="desk-tool-card" id="toolSmartTemplates">
+        <div class="desk-tool-icon"><svg class="i" viewBox="0 0 24 24"><path d="M12 3l1.8 4.7 4.7 1.8-4.7 1.8L12 16l-1.8-4.7-4.7-1.8 4.7-1.8z"/></svg></div>
+        <div class="desk-tool-info"><b>Templat Viral</b><span>Promo, reels, slideshow</span></div>
+      </div>
+    </div>
+  </section>
+
+  <section>
+    <div class="desk-section-head">
+      <h3>Proyek Terbaru</h3>
+      <button class="btn ghost" id="homeViewAllProjectsBtn">Lihat Semua &rarr;</button>
+    </div>
+    <div class="desk-proj-grid" id="homeRecentProjectsGrid"></div>
+  </section>
+</main>
+
+<main id="viewProjects" class="desk-view-overlay" hidden>
+  <div class="desk-section-head">
+    <div>
+      <h2 style="font-size:20px;font-weight:800;color:#fff">Semua Proyek CapCut</h2>
+      <p style="margin:2px 0 0;font-size:12px;color:var(--muted)">Kelola draft proyek lokal dari direktori CapCut PC atau ruang kerja cloud.</p>
+    </div>
+    <div style="display:flex;gap:8px">
+      <button class="btn" id="projRefreshBtn"><svg class="i" viewBox="0 0 24 24"><path d="M4 12a8 8 0 1 0 2.3-5.6M4 4v5h5"/></svg> Segarkan</button>
+      <button class="btn primary" id="projNewBtn"><svg class="i" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg> Proyek Baru</button>
+    </div>
+  </div>
+  <div class="desk-proj-grid" id="allProjectsGrid"></div>
+</main>
+
+<main id="viewTemplates" class="desk-view-overlay" hidden>
+  <div class="desk-section-head">
+    <div>
+      <h2 style="font-size:20px;font-weight:800;color:#fff">Pusat Templat Video</h2>
+      <p style="margin:2px 0 0;font-size:12px;color:var(--muted)">Pilih dari berbagai gaya video viral: Promo Produk, Sinematik, Quotes, dan YouTube Intro.</p>
+    </div>
+    <div style="display:flex;gap:6px" id="templateFilterChips">
+      <button class="btn primary" data-cat="all">Semua</button>
+      <button class="btn" data-cat="promo">Promo &amp; Iklan</button>
+      <button class="btn" data-cat="reels">TikTok / Reels (9:16)</button>
+      <button class="btn" data-cat="youtube">YouTube (16:9)</button>
+      <button class="btn" data-cat="quotes">Quotes &amp; Lirik</button>
+      <button class="btn" data-cat="slideshow">Slideshow Estetik</button>
+    </div>
+  </div>
+  <div class="desk-tpl-grid" id="allTemplatesGrid"></div>
+</main>
 <aside id="media"><nav id="mtabs" aria-label="Aset"></nav><div id="mwrap"><nav id="msub" aria-label="Kategori"></nav><div id="mbody"></div></div>
   <input type="file" id="fileIn" multiple accept="video/*,audio/*,image/*" hidden>
   <input type="file" id="draftFileIn" accept=".json,application/json" hidden></aside>
@@ -376,11 +515,334 @@ let rate = 1, rippleOn = false, beatSnap = true, previewAudio = null;
 const ORIG = [...RAKIT.STICKERS, ...RAKIT.EFFECTS, ...RAKIT.FILTERS, ...RAKIT.ADJUSTS, ...RAKIT.TRANS], ORIG_BY = Object.fromEntries(ORIG.map(i => [i.key, i]));
 const isPreviewOnly = key => /^demo:/.test(key || '');
 
+// ---------- desktop navigation views ----------
+let currentView = 'editor';
+function switchDeskView(targetView) {
+  currentView = targetView;
+  $$('.desk-nav button').forEach(b => {
+    const isAct = b.dataset.view === targetView;
+    b.classList.toggle('on', isAct);
+    b.setAttribute('aria-selected', isAct);
+  });
+  $('#viewHome').hidden = targetView !== 'home';
+  $('#viewProjects').hidden = targetView !== 'projects';
+  $('#viewTemplates').hidden = targetView !== 'templates';
+
+  if (targetView === 'home') renderHomeView();
+  else if (targetView === 'projects') renderProjectsView();
+  else if (targetView === 'templates') renderTemplatesView();
+}
+
+function renderHomeView() {
+  renderRecentProjectsGrid($('#homeRecentProjectsGrid'), 4);
+}
+
+function renderProjectsView() {
+  renderRecentProjectsGrid($('#allProjectsGrid'), 50);
+}
+
+async function renderRecentProjectsGrid(container, limit = 10) {
+  if (!container) return;
+  container.innerHTML = '<div style="color:var(--muted);font-size:12px;padding:20px">Memuat daftar proyek...</div>';
+  
+  let list = [];
+  if (localDraftProjects.length) {
+    list = localDraftProjects.map(p => ({
+      name: p.name,
+      type: 'local',
+      dur: 0,
+      modified: 'Lokal PC'
+    }));
+  } else if (Studio.connected) {
+    try {
+      const remote = await Studio.api('/api/drafts').catch(() => []);
+      list = remote.map(d => ({
+        name: d.name,
+        type: 'mcp',
+        dur: d.duration || 0,
+        modified: d.updated ? new Date(d.updated * 1000).toLocaleDateString() : 'MCP'
+      }));
+    } catch {}
+  }
+
+  // Always ensure current project and demo exist in list if empty
+  if (!list.length) {
+    list = [
+      { name: DRAFT || 'Contoh project', type: DEMO ? 'demo' : 'local', dur: total(), modified: 'Sesi Aktif' }
+    ];
+  }
+
+  container.innerHTML = '';
+  list.slice(0, limit).forEach(item => {
+    const card = document.createElement('div');
+    card.className = 'desk-proj-card';
+    const isCurrent = item.name === DRAFT;
+    card.innerHTML = `
+      <div class="desk-proj-thumb">
+        <canvas class="proj-thumb-cv" width="160" height="90"></canvas>
+        <span class="desk-proj-dur">${item.dur ? fmtDur(item.dur) : '00:15'}</span>
+      </div>
+      <div class="desk-proj-body">
+        <div class="desk-proj-title">${esc(item.name)}</div>
+        <div class="desk-proj-meta">
+          <span>${esc(item.type.toUpperCase())}</span>
+          <span style="color:${isCurrent ? 'var(--accent)' : 'var(--muted)'}">${isCurrent ? 'Sedang Dibuka' : esc(item.modified)}</span>
+        </div>
+        <div class="desk-proj-actions">
+          <button class="open-p-btn">${icon('play')} Buka</button>
+          <button class="dup-p-btn">${icon('copy')} Duplikat</button>
+          <button class="exp-p-btn">${icon('download')} Unduh JSON</button>
+        </div>
+      </div>
+    `;
+
+    // Draw stylish thumbnail gradient canvas
+    const cv = card.querySelector('.proj-thumb-cv');
+    if (cv) {
+      const cx = cv.getContext('2d');
+      const grad = cx.createLinearGradient(0, 0, 160, 90);
+      grad.addColorStop(0, '#192536');
+      grad.addColorStop(1, '#0a1018');
+      cx.fillStyle = grad;
+      cx.fillRect(0, 0, 160, 90);
+      cx.fillStyle = '#3dd6e0';
+      cx.font = 'bold 18px Plus Jakarta Sans, sans-serif';
+      cx.textAlign = 'center';
+      cx.textBaseline = 'middle';
+      cx.fillText(item.name.slice(0, 8), 80, 45);
+    }
+
+    card.querySelector('.open-p-btn').onclick = async (ev) => {
+      ev.stopPropagation();
+      await openProjectByName(item.name);
+      switchDeskView('editor');
+    };
+    card.querySelector('.dup-p-btn').onclick = (ev) => {
+      ev.stopPropagation();
+      duplicateProject(item.name);
+    };
+    card.querySelector('.exp-p-btn').onclick = (ev) => {
+      ev.stopPropagation();
+      downloadCapCutDraft();
+    };
+    card.onclick = async () => {
+      await openProjectByName(item.name);
+      switchDeskView('editor');
+    };
+    container.appendChild(card);
+  });
+}
+
+async function openProjectByName(name) {
+  if (name === DRAFT) {
+    Studio.toast(`Proyek '${name}' sedang aktif.`);
+    return;
+  }
+  const localMatch = localDraftProjects.find(p => p.name === name);
+  if (localMatch) {
+    await loadDraftFromHandle(localMatch);
+    Studio.toast(`Membuka '${name}' dari disk lokal PC.`);
+    return;
+  }
+  DRAFT = name;
+  $('#pnameT').textContent = DRAFT;
+  sel = null; undoS.length = redoS.length = 0;
+  if (Studio.connected) {
+    await load();
+  } else {
+    loadDemo();
+  }
+  Studio.toast(`Membuka proyek '${name}'.`);
+}
+
+function duplicateProject(name) {
+  const newName = name + ' (Salinan)';
+  Studio.toast(`Proyek diduplikat menjadi '${newName}'.`);
+  DRAFT = newName;
+  $('#pnameT').textContent = DRAFT;
+  save();
+  renderProjectsView();
+}
+
+const TEMPLATE_PRESETS = [
+  {
+    id: 'promo_viral',
+    cat: 'promo',
+    name: 'Promo Diskon Kilat (9:16)',
+    desc: 'Format video iklan pendek 9:16 dengan teks judul punchy, sorotan harga, dan tombol CTA kuat.',
+    ratio: '9:16',
+    w: 1080, h: 1920,
+    palette: { primary: '#FFD23F', accent: '#FF4D6D', bg: '#0b0c10' },
+    title: 'DISKON KILAT 50%',
+    subtitle: 'Hanya Hari Ini &middot; Gratis Ongkir',
+    cta: 'KLIK LINK DI BIO &rarr;'
+  },
+  {
+    id: 'reels_story',
+    cat: 'reels',
+    name: 'TikTok / Reels Hook Pop (9:16)',
+    desc: 'Bukaan animasi pop-up dan karaoke subtitle dinamis untuk retensi video pendek viral.',
+    ratio: '9:16',
+    w: 1080, h: 1920,
+    palette: { primary: '#3dd6e0', accent: '#ffe66d', bg: '#101118' },
+    title: '3 TRIK YANG WAJIB TAHU!',
+    subtitle: 'Nomor 3 paling ampuh',
+    cta: 'Follow untuk Part 2'
+  },
+  {
+    id: 'youtube_intro',
+    cat: 'youtube',
+    name: 'YouTube Cinematic Intro (16:9)',
+    desc: 'Intro horizontal 16:9 sinematik dengan judul minimalis, teks transisi pudar, dan background gelap.',
+    ratio: '16:9',
+    w: 1920, h: 1080,
+    palette: { primary: '#ffffff', accent: '#3dd6e0', bg: '#08090d' },
+    title: 'VLOG PERJALANAN',
+    subtitle: 'Episode 01 &middot; Menjelajah Kota',
+    cta: 'SUBSCRIBE CHANNEL'
+  },
+  {
+    id: 'quote_aesthetic',
+    cat: 'quotes',
+    name: 'Quotes & Lirik Estetik (9:16)',
+    desc: 'Latar redup hangat dengan baris kutipan bergantian dan efek film grain klasik.',
+    ratio: '9:16',
+    w: 1080, h: 1920,
+    palette: { primary: '#ffe9c7', accent: '#f4c95d', bg: '#161311' },
+    title: '“Mulai saja dulu hari ini.”',
+    subtitle: 'Langkah kecil menuju impian besar',
+    cta: 'Bagikan ke temanmu'
+  },
+  {
+    id: 'slideshow_minimal',
+    cat: 'slideshow',
+    name: 'Slideshow Foto Sinematik',
+    desc: 'Urutan foto dengan transisi zoom in halus, lower-third penjelas, dan musik lembut.',
+    ratio: '9:16',
+    w: 1080, h: 1920,
+    palette: { primary: '#e8f7f0', accent: '#0e9f6e', bg: '#0d1310' },
+    title: 'Momen Tak Terlupakan',
+    subtitle: 'Kompilasi foto terbaik tahun ini',
+    cta: 'Simpan kenanganmu'
+  }
+];
+
+function renderTemplatesView(filterCat = 'all') {
+  const container = $('#allTemplatesGrid');
+  if (!container) return;
+  container.innerHTML = '';
+  const filtered = filterCat === 'all' ? TEMPLATE_PRESETS : TEMPLATE_PRESETS.filter(t => t.cat === filterCat);
+  filtered.forEach(t => {
+    const card = document.createElement('div');
+    card.className = 'desk-tpl-card';
+    card.innerHTML = `
+      <div class="desk-tpl-cover" style="background:radial-gradient(ellipse at center, ${t.palette.accent}22 0%, #0d0f16 100%)">
+        <span class="tier free" style="position:absolute;top:10px;left:10px">${t.ratio}</span>
+        <div style="font-size:16px;font-weight:800;color:${t.palette.primary};margin-bottom:6px;font-family:var(--f-display)">${esc(t.title)}</div>
+        <div style="font-size:11px;color:#aaa">${esc(t.subtitle)}</div>
+      </div>
+      <div class="desk-tpl-body">
+        <b>${esc(t.name)}</b>
+        <p>${esc(t.desc)}</p>
+        <button class="desk-tpl-btn" data-tid="${t.id}">${icon('plus')} Buat dari Templat Ini</button>
+      </div>
+    `;
+    card.querySelector('.desk-tpl-btn').onclick = () => applyTemplateToProject(t);
+    container.appendChild(card);
+  });
+}
+
+function applyTemplateToProject(tpl) {
+  snap();
+  DRAFT = tpl.name.replace(/\s*\(.*\)/, '') + ' ' + Math.floor(Math.random() * 900 + 100);
+  $('#pnameT').textContent = DRAFT;
+  const vt = uid(), tt = uid(), at = uid();
+  const dur = 9.0;
+  
+  // Create sample backgrounds matching palette
+  const p1 = demoImage('Scene 1', tpl.palette.bg, tpl.palette.accent, tpl.w, tpl.h);
+  const p2 = demoImage('Scene 2', tpl.palette.accent, tpl.palette.bg, tpl.w, tpl.h);
+  
+  S = {
+    v: 3,
+    draft: DRAFT,
+    width: tpl.w,
+    height: tpl.h,
+    tracks: [
+      { id: tt, type: 'text' },
+      { id: vt, type: 'video' },
+      { id: at, type: 'audio' }
+    ],
+    elements: [
+      { id: uid(), track: vt, type: 'photo', src: p1, name: 'Latar 1', start: 0, duration: 4.5, x: 0, y: 0, scale: 1, rotation: 0, alpha: 1, volume: 1, speed: 1, source_start: 0, fade_in: 0, fade_out: 0, keyframes: {}, transition: { key: 'demo:transition:zoomin', name: 'Zoom masuk', duration: 0.6 } },
+      { id: uid(), track: vt, type: 'photo', src: p2, name: 'Latar 2', start: 4.5, duration: 4.5, x: 0, y: 0, scale: 1, rotation: 0, alpha: 1, volume: 1, speed: 1, source_start: 0, fade_in: 0, fade_out: 0, keyframes: {} },
+      { id: uid(), track: tt, type: 'text', text: tpl.title, start: 0.3, duration: 4.0, x: 0, y: 0.35, scale: 1.1, rotation: 0, alpha: 1, volume: 1, color: tpl.palette.primary, font_size: 13, speed: 1, source_start: 0, fade_in: 0, fade_out: 0, keyframes: {}, tstyle: RAKIT.TS.title, anim: { in: { id: 'pop', d: 0.5 }, out: { id: 'fade', d: 0.4 } } },
+      { id: uid(), track: tt, type: 'text', text: tpl.subtitle, start: 1.0, duration: 3.3, x: 0, y: 0.05, scale: 1, rotation: 0, alpha: 1, volume: 1, color: '#FFFFFF', font_size: 8, speed: 1, source_start: 0, fade_in: 0, fade_out: 0, keyframes: {}, tstyle: RAKIT.TS.karaoke },
+      { id: uid(), track: tt, type: 'text', text: tpl.cta, start: 4.8, duration: 3.8, x: 0, y: -0.45, scale: 1, rotation: 0, alpha: 1, volume: 1, color: tpl.palette.accent, font_size: 10, speed: 1, source_start: 0, fade_in: 0, fade_out: 0, keyframes: {}, tstyle: RAKIT.TS.popsub, anim: { in: { id: 'bounce', d: 0.5 } } },
+      { id: uid(), track: at, type: 'audio', src: FILES[4]?.path || toneWav(), name: 'Musik latar', start: 0, duration: dur, x: 0, y: 0, scale: 1, rotation: 0, alpha: 1, volume: 0.8, speed: 1, source_start: 0, fade_in: 0.5, fade_out: 1.0, keyframes: {} }
+    ]
+  };
+  DEMO = false;
+  $('#demoTag').hidden = true;
+  norm();
+  fitTl();
+  render();
+  save();
+  switchDeskView('editor');
+  Studio.toast(`Templat '${tpl.name}' berhasil dimuat ke editor!`, 4000);
+}
+
 // ---------- boot ----------
-$('#home').innerHTML = icon('home'); $('#play').innerHTML = icon('play'); $('#fs').innerHTML = icon('fullscreen');
+$('#navEditor').innerHTML = `${icon('film')} Editor`;
+$('#navHome').innerHTML = `${icon('home')} Beranda`;
+$('#navProjects').innerHTML = `${icon('folder')} Proyek`;
+$('#navTemplates').innerHTML = `${icon('sparkles')} Templat`;
+
+$('#navEditor').onclick = () => switchDeskView('editor');
+$('#navHome').onclick = () => switchDeskView('home');
+$('#navProjects').onclick = () => switchDeskView('projects');
+$('#navTemplates').onclick = () => switchDeskView('templates');
+
+$('#homeNewProjBtn').onclick = () => { newProjectInfo(); switchDeskView('editor'); };
+$('#homeConnectFolderBtn').onclick = () => openCapCutFolderPicker();
+$('#homeConnectMcpBtn').onclick = () => openMcpModal();
+$('#homeViewAllProjectsBtn').onclick = () => switchDeskView('projects');
+$('#projRefreshBtn').onclick = () => renderProjectsView();
+$('#projNewBtn').onclick = () => { newProjectInfo(); switchDeskView('editor'); };
+
+$('#toolAutoCaption').onclick = () => {
+  switchDeskView('editor');
+  tab = 'text'; sub['text'] = 'script';
+  renderTabs();
+  Studio.toast('Membuka panel Auto-Caption. Masukkan naskah atau aktifkan mikrofon.');
+};
+$('#toolTts').onclick = () => {
+  switchDeskView('editor');
+  openTtsModal();
+};
+$('#toolScriptToVideo').onclick = () => {
+  switchDeskView('editor');
+  tab = 'text'; sub['text'] = 'script';
+  renderTabs();
+};
+$('#toolChromaKey').onclick = () => {
+  switchDeskView('editor');
+  tab = 'media';
+  renderTabs();
+  Studio.toast('Pilih klip video/foto di timeline, lalu aktifkan Chroma Key di tab Video.');
+};
+$('#toolSmartTemplates').onclick = () => switchDeskView('templates');
+
+$$('#templateFilterChips button').forEach(btn => {
+  btn.onclick = () => {
+    $$('#templateFilterChips button').forEach(b => b.classList.toggle('primary', b === btn));
+    renderTemplatesView(btn.dataset.cat);
+  };
+});
+
+$('#play').innerHTML = icon('play'); $('#fs').innerHTML = icon('fullscreen');
 $('#export').innerHTML = `${icon('upload')}<span class="lbl"> Ekspor</span>`; $('#safeBtn').innerHTML = icon('grid');
 $('#menuBtn').innerHTML = `Menu ${icon('chev')}`;
-$('#home').onclick = () => Studio.go('index.html');
 const MENU = {
   new: ['plus', 'Project baru'],
   open: ['folder', 'Buka project'],
@@ -1177,7 +1639,7 @@ function openTtsModal(el) {
   };
 }
 
-function startLiveAutoCaption() {
+function startLiveAutoCaption(subStyle = 'karaoke') {
   const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
   if (!SpeechRec) return Studio.toast('Speech Recognition tidak didukung browser ini. Gunakan Google Chrome.');
   const recog = new SpeechRec();
@@ -1185,19 +1647,34 @@ function startLiveAutoCaption() {
   recog.continuous = true;
   recog.interimResults = false;
   const statusEl = $('#recStatus');
+  const stopBtn = $('#stopCaptionBtn');
   if (statusEl) {
     statusEl.style.display = 'block';
     statusEl.style.color = '#3dd68c';
     statusEl.textContent = 'Mendengarkan suara mikrofon... Berbicaralah untuk membuat subtitle otomatis.';
   }
+  if (stopBtn) {
+    stopBtn.style.display = 'inline-flex';
+    stopBtn.onclick = () => { recog.stop(); stopBtn.style.display = 'none'; };
+  }
   Studio.toast('Auto-Caption aktif. Berbicaralah di mikrofon...');
+  
+  const styleMap = {
+    karaoke: { tstyle: RAKIT.TS.karaoke, color: '#FFE66D', fs: 7.5, anim: { in: { id: 'pop', d: 0.25 }, out: { id: 'fade', d: 0.2 } } },
+    popsub: { tstyle: RAKIT.TS.popsub, color: '#111111', fs: 7.0, anim: { in: { id: 'bounce', d: 0.3 }, out: { id: 'fade', d: 0.2 } } },
+    pillsub: { tstyle: RAKIT.TS.pillsub, color: '#3DD6E0', fs: 7.0, anim: { in: { id: 'wipe', d: 0.3 }, out: { id: 'fade', d: 0.2 } } },
+    boldstroke: { tstyle: RAKIT.TS.boldstroke, color: '#FFFFFF', fs: 8.0, anim: { in: { id: 'zoomIn', d: 0.25 }, out: { id: 'fade', d: 0.2 } } },
+    sub: { tstyle: RAKIT.TS.sub, color: '#FFFFFF', fs: 6.5, anim: { in: { id: 'fade', d: 0.2 }, out: { id: 'fade', d: 0.2 } } }
+  };
+  const cfg = styleMap[subStyle] || styleMap.karaoke;
+
   recog.onresult = ev => {
     for (let i = ev.resultIndex; i < ev.results.length; i++) {
       if (ev.results[i].isFinal) {
         const text = ev.results[i][0].transcript.trim();
         if (text) {
           if (statusEl) statusEl.textContent = 'Terdeteksi: "' + text + '"';
-          const dur = Math.max(2, Math.min(6, text.length * 0.12));
+          const dur = Math.max(1.8, Math.min(6, text.length * 0.12));
           snap();
           let tk = S.tracks.find(k => k.type === 'text');
           if (!tk) {
@@ -1207,11 +1684,12 @@ function startLiveAutoCaption() {
           const subEl = newElement({
             new: 'text',
             text: text,
-            font_size: 7,
+            font_size: cfg.fs,
             y: -0.62,
-            tstyle: RAKIT.TS.sub,
+            color: cfg.color,
+            tstyle: cfg.tstyle,
             duration: dur,
-            anim: { in: { id: 'fade', d: 0.2 }, out: { id: 'fade', d: 0.2 } }
+            anim: cfg.anim
           }, t);
           subEl.track = tk.id;
           S.elements.push(subEl);
@@ -1786,13 +2264,37 @@ function freeze() { // CapCut-style freeze frame: the frame at the playhead beco
   if (e.look) fz.look = e.look; if (e.adj) fz.adj = {...e.adj};
   S.elements.push(fz); sel = fz.id; selTrx = null; commit(); Studio.toast('Frame dibekukan 3 detik (pratinjau saja, tidak ikut di-deploy).');
 }
-function captionsFromScript(text) { // one caption per line, spread evenly over the selected clip (or the whole video)
+function captionsFromScript(text, presetStyle = 'karaoke') { // one caption per line, spread evenly over the selected clip (or the whole video)
   const lines = text.split(/\n+/).map(x => x.trim()).filter(Boolean); if (!lines.length) return Studio.toast('Tulis naskah dulu, satu kalimat per baris.');
-  const e = byId(sel), a = e && e.type !== 'text' ? e.start : 0, b = e && e.type !== 'text' ? end(e) : total(), per = (b - a) / lines.length;
-  snap(); const k = {id: uid(), type: 'text'}; S.tracks.push(k);
-  lines.forEach((l, i) => { const x = newElement({new: 'text', text: l, font_size: 6.5, y: -.62, tstyle: RAKIT.TS.sub, anim: {in: {id: 'fade', d: Math.min(.2, per / 4)}, out: {id: 'fade', d: Math.min(.2, per / 4)}}}, a + i * per);
-    x.duration = +per.toFixed(3); x.track = k.id; S.elements.push(x); });
-  sel = null; commit(); Studio.toast(`${lines.length} teks dibuat dari naskah${e && e.type !== 'text' ? ' di atas klip terpilih' : ''}.`);
+  const e = byId(sel), a = e && e.type !== 'text' ? e.start : 0, b = e && e.type !== 'text' ? end(e) : total(), per = Math.max(1.2, (b - a) / lines.length);
+  snap();
+  let k = S.tracks.find(tr => tr.type === 'text');
+  if (!k) { k = {id: uid(), type: 'text'}; S.tracks.push(k); }
+  
+  const styleMap = {
+    karaoke: { tstyle: RAKIT.TS.karaoke, color: '#FFE66D', fs: 7.5, anim: { in: { id: 'pop', d: 0.25 }, out: { id: 'fade', d: 0.2 } } },
+    popsub: { tstyle: RAKIT.TS.popsub, color: '#111111', fs: 7.0, anim: { in: { id: 'bounce', d: 0.3 }, out: { id: 'fade', d: 0.2 } } },
+    pillsub: { tstyle: RAKIT.TS.pillsub, color: '#3DD6E0', fs: 7.0, anim: { in: { id: 'wipe', d: 0.3 }, out: { id: 'fade', d: 0.2 } } },
+    boldstroke: { tstyle: RAKIT.TS.boldstroke, color: '#FFFFFF', fs: 8.0, anim: { in: { id: 'zoomIn', d: 0.25 }, out: { id: 'fade', d: 0.2 } } },
+    sub: { tstyle: RAKIT.TS.sub, color: '#FFFFFF', fs: 6.5, anim: { in: { id: 'fade', d: 0.2 }, out: { id: 'fade', d: 0.2 } } }
+  };
+  const cfg = styleMap[presetStyle] || styleMap.karaoke;
+
+  lines.forEach((l, i) => {
+    const x = newElement({
+      new: 'text',
+      text: l,
+      font_size: cfg.fs,
+      y: -0.62,
+      color: cfg.color,
+      tstyle: cfg.tstyle,
+      anim: cfg.anim
+    }, a + i * per);
+    x.duration = +per.toFixed(3);
+    x.track = k.id;
+    S.elements.push(x);
+  });
+  sel = null; commit(); Studio.toast(`${lines.length} auto-caption '${presetStyle}' berhasil dibuat!`);
 }
 function detectBeats(e) { // energy-onset peaks of the waveform → beat markers (in source seconds)
   const P = peaks[e.src]; if (!(P instanceof Float32Array)) { loadPeaks(e.src); return Studio.toast('Gelombang audio sedang dibaca. Coba lagi sebentar.'); }
@@ -2115,19 +2617,42 @@ function renderMedia() {
     if (!items.length) note('Tidak ada file. Impor audio dari Media → Lokal.');
     for (const f of items.slice(0, 200)) grid.appendChild(fileItem(f));
   } else if (tab === 'text' && cur === 'script') {
-    B.insertAdjacentHTML('beforeend', `<div class="shead">${icon('text')} Teks dari naskah</div>`);
-    note('Tempel naskah, satu kalimat per baris. Studio membuat teks bergaya subtitle yang dibagi rata sepanjang klip terpilih (atau seluruh video jika tidak ada klip dipilih).');
-    B.insertAdjacentHTML('beforeend', `<textarea id="script" rows="5" placeholder="Halo semuanya!\nHari ini kita ke pasar pagi.\nIkuti sampai akhir ya."></textarea><button type="button" class="btn primary" id="scriptGo">${icon('plus')} Buat teks dari naskah</button>
+    B.insertAdjacentHTML('beforeend', `<div class="shead">${icon('text')} Auto-Caption &amp; Subtitle Naskah</div>`);
+    note('Ketik naskah atau aktifkan transkripsi mic untuk membuat subtitle video otomatis bergaya CapCut Desktop.');
+    B.insertAdjacentHTML('beforeend', `
+      <div style="display:grid;gap:8px">
+        <label style="font-size:11px;color:var(--muted)">Pilih Gaya Subtitle CapCut:</label>
+        <div style="display:flex;gap:6px;flex-wrap:wrap" id="capPresetChips">
+          <button type="button" class="btn on" data-style="karaoke" style="font-size:11px">${icon('sparkles')} Karaoke Kuning</button>
+          <button type="button" class="btn" data-style="popsub" style="font-size:11px">${icon('star')} Pop-Up Putih</button>
+          <button type="button" class="btn" data-style="pillsub" style="font-size:11px">${icon('wand')} Cyan Pill Box</button>
+          <button type="button" class="btn" data-style="boldstroke" style="font-size:11px">${icon('font')} Bold Stroke</button>
+        </div>
+        <textarea id="script" rows="4" placeholder="Halo semuanya!\nSelamat datang di video saya.\nJangan lupa like dan follow!"></textarea>
+        <button type="button" class="btn primary" id="scriptGo">${icon('plus')} Buat Auto-Caption dari Naskah</button>
+      </div>
       <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:12px">
-        <div class="shead">${icon('volume')} Auto-Caption Otomatis (Mikrofon / Suara)</div>
-        <p style="margin:0 0 8px;color:var(--muted);font-size:12px">Hasilkan subtitle otomatis langsung secara real-time dari rekaman suara via Web Speech API browser.</p>
-        <button type="button" class="btn" id="startCaptionBtn">${icon('play')} Mulai Auto-Caption (Suara/Mic)</button>
+        <div class="shead">${icon('volume')} Auto-Caption Real-time (Mikrofon / Suara)</div>
+        <p style="margin:0 0 8px;color:var(--muted);font-size:12px">Transkripsi langsung suara pembicara menjadi timeline subtitle otomatis menggunakan Web Speech Recognition.</p>
+        <div style="display:flex;gap:6px;align-items:center">
+          <button type="button" class="btn" id="startCaptionBtn">${icon('play')} Mulai Rekam &amp; Buat Subtitle</button>
+          <button type="button" class="btn ghost" id="stopCaptionBtn" style="color:var(--danger);display:none">${icon('pause')} Berhenti</button>
+        </div>
         <div id="recStatus" style="display:none;margin-top:8px;font-size:12px;padding:6px 10px;background:#1a2820;border-radius:6px;border:1px solid #2e5a40"></div>
       </div>`);
     try { $('#script').value = sessionStorage.getItem('rakitScript') || ''; } catch {}
     $('#script').oninput = ev => { try { sessionStorage.setItem('rakitScript', ev.target.value); } catch {} };
-    $('#scriptGo').onclick = () => captionsFromScript($('#script').value);
-    const scb = $('#startCaptionBtn'); if (scb) scb.onclick = () => startLiveAutoCaption();
+    
+    let curSubStyle = 'karaoke';
+    $$('#capPresetChips button').forEach(b => {
+      b.onclick = () => {
+        $$('#capPresetChips button').forEach(x => x.classList.toggle('on', x === b));
+        curSubStyle = b.dataset.style;
+      };
+    });
+
+    $('#scriptGo').onclick = () => captionsFromScript($('#script').value, curSubStyle);
+    const scb = $('#startCaptionBtn'); if (scb) scb.onclick = () => startLiveAutoCaption(curSubStyle);
   } else if (tab === 'text') {
     const P = cur === 'template' ? RAKIT.TEXTS.map(x => [x.name, {new: 'text', ...JSON.parse(JSON.stringify(x)), color: x.tstyle.color && x.tstyle.color !== 'transparent' ? x.tstyle.color : '#FFFFFF'}])
       : [['Judul', {new: 'text', text: 'JUDUL', font_size: 14, y: .5}], ['Subjudul', {new: 'text', text: 'Subjudul', font_size: 9}], ['Caption', {new: 'text', text: 'Tulis caption di sini', font_size: 7, y: -.6}], ['Sorotan', {new: 'text', text: 'PROMO!', font_size: 12, color: '#F4C95D'}]];

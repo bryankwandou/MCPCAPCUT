@@ -179,6 +179,10 @@ const RAKIT = (() => {
     highlight: {bg: '#FF4D6D', color: '#fff', pad: .18, radius: .4, weight: 800, shadow: 'none', italic: false},
     marker: {mark: '#FFE66D', color: '#151515', weight: 800, shadow: 'none'},
     sub: {bg: '#000000a6', pad: .18, radius: .12, weight: 600, shadow: 'none'},
+    karaoke: {color: '#ffe66d', glow: '#ffe66d', font: 'display', weight: 800, shadow: '0 .08em .25em #000, 0 0 .6em #ffe66d'},
+    popsub: {bg: '#ffffff', color: '#111111', pad: .22, radius: .25, weight: 800, shadow: '0 .08em .25em #000a'},
+    pillsub: {bg: '#1b1d23ee', color: '#3dd6e0', pad: .24, radius: .99, weight: 700, stroke: '#3dd6e0', strokeW: .02, shadow: 'none'},
+    boldstroke: {color: '#ffffff', stroke: '#000000', strokeW: .08, font: 'display', weight: 800, shadow: '0 .1em .3em #000c'},
     retro: {font: 'display', weight: 800, color: '#FFD23F', shadow: '.06em .06em 0 #FF4D6D, .12em .12em 0 #46C2FF', upper: true},
     count: {font: 'display', weight: 800, color: '#fff', shadow: '0 0 .3em #FF4D6D, 0 .05em 0 #0008'},
     quote: {font: 'display', italic: true, weight: 700, color: '#FFE9C7', shadow: '0 .05em .2em #000a'},
@@ -278,19 +282,23 @@ const RAKIT = (() => {
   // fx(tl, dur) -> {transform, filter, overlay}
   const EFFECTS = [
     ['shake', 'Getar', tl => { const f = Math.floor(tl * 24); return {transform: `translate(${(rnd(f) - .5) * 3}%, ${(rnd(f + 9) - .5) * 3}%) rotate(${(rnd(f + 3) - .5) * 2}deg)`}; }],
+    ['camerazoom', 'Zoom Guncang', tl => { const f = Math.floor(tl * 30), s = 1 + .08 * Math.sin(tl * Math.PI * 4); return {transform: `scale(${s}) translate(${(rnd(f) - .5) * 2}%, ${(rnd(f + 5) - .5) * 2}%)`}; }],
     ['zoompulse', 'Zoom denyut', tl => ({transform: `scale(${1 + .06 * Math.pow(Math.abs(Math.sin(tl * Math.PI * 2)), 3)})`})],
     ['blurin', 'Kabur masuk', (tl) => ({filter: `blur(${Math.max(0, 1 - tl / 1) * 14}px)`})],
     ['glitch', 'Glitch RGB', tl => { const f = Math.floor(tl * 15), on = rnd(f) > .45, o = on ? 3 + rnd(f + 1) * 6 : 1.5;
       return {filter: `drop-shadow(${o}px 0 0 rgba(255,0,60,.75)) drop-shadow(${-o}px 0 0 rgba(0,240,255,.75))`, transform: on ? `translateX(${(rnd(f + 2) - .5) * 4}%) skewX(${(rnd(f + 4) - .5) * 6}deg)` : '',
         overlay: on ? `<div class="fxo" style="background:linear-gradient(transparent ${rnd(f + 5) * 80}%, #ffffff30 0 ${rnd(f + 5) * 80 + 4}%, transparent 0)"></div>` : ''}; }],
+    ['chromatic', 'Aberasi RGB Halus', tl => { const o = 2.5 + Math.sin(tl * 8) * 1.5; return {filter: `drop-shadow(${o}px 0 0 rgba(255,20,80,.6)) drop-shadow(${-o}px 0 0 rgba(0,220,255,.6))`}; }],
+    ['edgeglow', 'Pijar Neon Tepi', tl => ({filter: `drop-shadow(0 0 ${4 + Math.sin(tl * 5) * 3}px #3dd6e0) brightness(1.08)`})],
     ['flash', 'Kilat', tl => ({overlay: `<div class="fxo" style="background:#fff;opacity:${Math.max(0, 1 - (tl % 1.2) / .35).toFixed(3)}"></div>`})],
     ['vignette', 'Vinyet', () => ({overlay: '<div class="fxo" style="background:radial-gradient(ellipse at center, transparent 45%, #000c 100%)"></div>'})],
+    ['filmburn', 'Film Burn Leak', tl => ({overlay: `<div class="fxo" style="mix-blend-mode:screen;background:radial-gradient(ellipse 90% 60% at ${Math.sin(tl * 1.5) * 50 + 50}% 10%, #ff5500bb 0%, #ffaa0044 50%, transparent 80%)"></div>`})],
     ['grain', 'Butiran film', tl => ({filter: 'contrast(1.05)', overlay: `<div class="fxo" style="background-image:url(${noise(Math.floor(tl * 24))});background-size:128px;mix-blend-mode:overlay;opacity:.35"></div>`})],
     ['vhs', 'VHS', tl => ({filter: 'saturate(1.3) contrast(1.1) drop-shadow(2px 0 0 #ff004c88) drop-shadow(-2px 0 0 #00e0ff88)', overlay: `<div class="fxo" style="background:repeating-linear-gradient(0deg,#0000 0 2px,#0005 2px 4px)"></div><div class="fxo" style="background:linear-gradient(transparent ${(tl * 35) % 120 - 20}%, #ffffff22 0 ${(tl * 35) % 120 - 12}%, transparent 0)"></div><div class="fxo vhs-tc">▶ PLAY  ${String(Math.floor(tl / 60)).padStart(2, '0')}:${String(Math.floor(tl % 60)).padStart(2, '0')}</div>`})],
     ['bokeh', 'Bokeh', tl => ({overlay: `<div class="fxo" style="mix-blend-mode:screen;background:${[0, 1, 2, 3, 4, 5, 6].map(i => { const x = (rnd(i) * 100 + Math.sin(tl * .5 + i) * 6), y = (rnd(i + 20) * 100 - tl * (4 + i) % 120 + 120) % 120 - 10, r = 6 + rnd(i + 40) * 10, c = ['#ffd27a', '#ff9ec7', '#9ad8ff'][i % 3]; return `radial-gradient(circle at ${x}% ${y}%, ${c}aa 0, ${c}55 ${r * .6}%, transparent ${r}%)`; }).join(',')}"></div>`})],
     ['lightleak', 'Bocor cahaya', tl => ({overlay: `<div class="fxo" style="mix-blend-mode:screen;opacity:.85;background:radial-gradient(ellipse 60% 80% at ${-10 + (Math.sin(tl * .8) + 1) * 40}% ${30 + Math.cos(tl * .6) * 20}%, #ff7a2fcc, transparent 70%), radial-gradient(ellipse 40% 60% at ${110 - (Math.sin(tl * .5) + 1) * 30}% 80%, #ff3d7f99, transparent 70%)"></div>`})],
     ['kabut', 'Mimpi', tl => ({filter: `blur(1.5px) brightness(1.1) saturate(1.2)`, overlay: `<div class="fxo" style="background:radial-gradient(circle at 50% ${50 + Math.sin(tl) * 10}%, transparent 30%, #ffffff40 100%)"></div>`})],
-  ].map(([id, name, fn]) => ({key: 'demo:effect:' + id, kind: 'effect', name, fn, vip: id === 'kabut', orig: true}));
+  ].map(([id, name, fn]) => ({key: 'demo:effect:' + id, kind: 'effect', name, fn, vip: id === 'kabut' || id === 'filmburn', orig: true}));
   // transitions: state(p, role) for outgoing ('out') / incoming ('in') clip, p 0..1 across the window
   const TRANS = [
     ['fade', 'Larut', (p, r) => r === 'in' ? {a: p} : {}],
@@ -305,6 +313,8 @@ const RAKIT = (() => {
     ['spin', 'Putar', (p, r) => r === 'out' ? {r: p * 90, a: 1 - p} : {r: -(1 - p) * 90, a: p}],
     ['wipe', 'Sapu', (p, r) => r === 'in' ? {wipe: p} : {}],
     ['blur', 'Kabur', (p, r) => r === 'out' ? {blur: p * 16, a: 1 - p * .6} : {blur: (1 - p) * 16, a: p}],
+    ['camerapush', 'Dorong Kamera', (p, r) => r === 'out' ? {s: 1 + p * 0.4, blur: p * 8, a: 1 - p} : {s: 0.8 + 0.2 * eo(p), blur: (1 - p) * 6, a: p}, true],
+    ['filmroll', 'Gulung Film', (p, r) => r === 'out' ? {dy: -p * 1.2, a: 1 - p * 0.5} : {dy: 1.2 * (1 - p), a: p}],
   ].map(([id, name, fn, vip]) => ({key: 'demo:transition:' + id, kind: 'transition', name, fn, vip: !!vip, orig: true}));
 
   // a small original sample frame used for card thumbnails
