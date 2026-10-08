@@ -420,7 +420,10 @@ def main() -> None:
         from .oauth import login
         login()
         return
-    if len(sys.argv) > 1 and sys.argv[1] in ("editor", "studio"):
+    if len(sys.argv) > 1 and sys.argv[1] == "token":
+        print(bridge.token())
+        return
+    if len(sys.argv) > 1 and sys.argv[1] in ("editor", "studio", "bridge", "start"):
         import time
         args = [a for a in sys.argv[2:] if not a.startswith("--")]
         urls = bridge.editor_url(args[0]) if args else bridge.studio_url()

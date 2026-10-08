@@ -17,10 +17,123 @@ const Studio = {
   token: PARAMS.token || ls('token') || '',
   connected: false,
   async connect() {
-    if (!this.bridge || !this.token) return false;
-    try { await this.api('/api/drafts'); this.connected = true; lsSet('bridge', this.bridge); lsSet('token', this.token); }
-    catch { this.connected = false; }
+    if (!this.bridge) this.bridge = 'http://127.0.0.1:8765';
+    if (!this.token) this.token = ls('token') || '';
+    try {
+      await this.api('/api/drafts');
+      this.connected = true;
+      lsSet('bridge', this.bridge);
+      lsSet('token', this.token);
+    } catch {
+      this.connected = false;
+    }
     return this.connected;
+  },
+  disconnect() {
+    this.connected = false;
+    lsSet('bridge', '');
+    lsSet('token', '');
+    this.token = '';
+    return true;
+  },
+  async setBridge(url, token) {
+    this.bridge = (url || 'http://127.0.0.1:8765').replace(/\/+$/, '');
+    this.token = token || '';
+    lsSet('bridge', this.bridge);
+    lsSet('token', this.token);
+    return await this.connect();
+  },
+  async pingBridge(url) {
+    const target = (url || this.bridge || 'http://127.0.0.1:8765').replace(/\/+$/, '');
+    try {
+      const ctrl = new AbortController();
+      const tm = setTimeout(() => ctrl.abort(), 4000);
+      const res = await fetch(target + '/api/ping', { signal: ctrl.signal, mode: 'cors' });
+      clearTimeout(tm);
+      if (res.ok) {
+        const j = await res.json();
+        return { ok: true, data: j };
+      }
+      return { ok: false, error: 'HTTP ' + res.status };
+    } catch (err) {
+      return { ok: false, error: err.message };
+    }
+  },
+  parseCapCutDraft(raw) {
+    const data = typeof raw === 'string' ? JSON.parse(raw) : raw;
+    const US = 1000000;
+    const mats = {}, groupOf = {};
+    for (const [group, items] of Object.entries(data.materials || {})) {
+      if (Array.isArray(items)) {
+        for (const m of items) {
+          if (m && m.id) { mats[m.id] = m; groupOf[m.id] = group; }
+        }
+      }
+    }
+    const tracks = [], elements = [];
+    for (const t of data.tracks || []) {
+      tracks.push({ id: t.id, type: t.type });
+      for (const s of t.segments || []) {
+        const m = mats[s.material_id] || {};
+        const c = s.clip || {};
+        const tr = s.target_timerange || { start: 0, duration: 3 * US };
+        const srcTr = s.source_timerange || {};
+        const el = {
+          id: s.id,
+          track: t.id,
+          start: +(tr.start / US).toFixed(3),
+          duration: +(tr.duration / US).toFixed(3),
+          source_start: +((srcTr.start || 0) / US).toFixed(3),
+          speed: parseFloat(s.speed || 1.0),
+          x: c.transform?.x || 0.0,
+          y: c.transform?.y || 0.0,
+          scale: c.scale?.x || 1.0,
+          rotation: c.rotation || 0.0,
+          alpha: c.alpha !== undefined ? c.alpha : 1.0,
+          volume: s.volume !== undefined ? s.volume : 1.0,
+          fade_in: 0.0,
+          fade_out: 0.0,
+          keyframes: {}
+        };
+        for (const ref of s.extra_material_refs || []) {
+          const g = groupOf[ref], rm = mats[ref] || {};
+          if (g === 'audio_fades') {
+            el.fade_in = (rm.fade_in_duration || 0) / US;
+            el.fade_out = (rm.fade_out_duration || 0) / US;
+          } else if (g === 'transitions') {
+            el.transition = {
+              key: 'transition:' + (rm.id || 'default'),
+              name: rm.name || 'Transisi',
+              duration: (rm.duration || 500000) / US,
+              vip: !!rm.is_vip
+            };
+          }
+        }
+        if (m.type === 'text') {
+          try { el.text = JSON.parse(m.content || '{}').text || ''; } catch { el.text = m.content || ''; }
+          el.type = 'text'; el.color = m.text_color || '#FFFFFF'; el.font_size = m.font_size || 8.0;
+        } else if (t.type === 'audio') {
+          el.type = 'audio'; el.src = m.path || ''; el.name = m.name || 'Audio';
+        } else if (['sticker', 'effect', 'filter'].includes(t.type)) {
+          el.type = t.type; el.src = ''; el.label = m.name || m.effect_name || t.type;
+          el.preview = m.path || ''; el.vip = !!m.is_vip;
+        } else {
+          el.type = m.type === 'photo' ? 'photo' : 'video';
+          el.src = m.path || ''; el.name = m.material_name || m.name || 'Media';
+        }
+        elements.push(el);
+      }
+    }
+    const cc = data.canvas_config || {};
+    return {
+      v: 3,
+      draft: data.name || 'CapCut_Imported',
+      width: cc.width || 1080,
+      height: cc.height || 1920,
+      duration: (data.duration || 0) / US,
+      tracks,
+      elements
+    };
   },
   async api(path, opt = {}) {
     const r = await fetch(this.bridge + path, {...opt, headers: {'X-Bridge-Token': this.token, 'Content-Type': 'application/json'}});

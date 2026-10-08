@@ -309,6 +309,11 @@ textarea#script { min-height: 120px; width: 100%; }
 .mgrid.g3 .mitem .th .tier { font-size: 8.5px; padding: 0 4px; top: 3px; left: 3px; }
 .mgrid.g3 .mitem .th img { padding: 20% 14% 10% !important; }
 @media (min-width: 901px) { body { grid-template-columns: 300px minmax(0, 1fr) 296px; } }
+.mcp-badge { display: inline-flex; align-items: center; gap: 6px; font-size: 11.5px; padding: 4px 10px; border-radius: 6px; border: 1px solid #ffffff1f; background: var(--surface-2); cursor: pointer; color: var(--fg); user-select: none; }
+.mcp-badge:hover { border-color: var(--accent); background: #3dd6e012; }
+.mcp-dot { width: 8px; height: 8px; border-radius: 50%; background: #777; display: inline-block; }
+.mcp-dot.on { background: #3dd68c; box-shadow: 0 0 8px #3dd68c; }
+.mcp-dot.off { background: #ef5b5b; box-shadow: 0 0 6px #ef5b5b; }
 </style>
 </head>
 <body>
@@ -322,14 +327,20 @@ textarea#script { min-height: 120px; width: 100%; }
         <button data-m="save" role="menuitem"></button>
         <button data-m="discard" role="menuitem"></button>
         <hr>
+        <button data-m="mcp" role="menuitem"></button>
+        <button data-m="importDraft" role="menuitem"></button>
+        <button data-m="exportDraft" role="menuitem"></button>
+        <hr>
         <button data-m="keys" role="menuitem"></button>
       </div></div>
+    <button class="mcp-badge" id="mcpBtn" title="Koneksi MCP CapCut Desktop" aria-label="Koneksi MCP"><span class="mcp-dot" id="mcpDot"></span><span id="mcpLbl">Connect MCP</span></button>
     <span id="demoTag" class="tier note" hidden>Mode demo</span></div>
   <div id="pname"><b id="pnameT">Project</b><span id="status"></span></div>
   <div class="hr"><button class="btn primary" id="export"></button></div>
 </header>
 <aside id="media"><nav id="mtabs" aria-label="Aset"></nav><div id="mwrap"><nav id="msub" aria-label="Kategori"></nav><div id="mbody"></div></div>
-  <input type="file" id="fileIn" multiple accept="video/*,audio/*,image/*" hidden></aside>
+  <input type="file" id="fileIn" multiple accept="video/*,audio/*,image/*" hidden>
+  <input type="file" id="draftFileIn" accept=".json,application/json" hidden></aside>
 <section id="player">
   <div class="phd"><b>Pemutar</b><span class="grow"></span><button class="btn ghost icon sm" id="safeBtn" title="Panduan area aman" aria-label="Panduan area aman" aria-pressed="false"></button><span id="ratio" class="mono"></span></div>
   <div id="stageWrap"><div id="stage"></div><div id="meter" title="Level audio" aria-hidden="true"><i><b></b></i><i><b></b></i></div></div>
@@ -370,12 +381,228 @@ $('#home').innerHTML = icon('home'); $('#play').innerHTML = icon('play'); $('#fs
 $('#export').innerHTML = `${icon('upload')}<span class="lbl"> Ekspor</span>`; $('#safeBtn').innerHTML = icon('grid');
 $('#menuBtn').innerHTML = `Menu ${icon('chev')}`;
 $('#home').onclick = () => Studio.go('index.html');
-const MENU = {new: ['plus', 'Project baru'], open: ['folder', 'Buka project'], save: ['download', 'Simpan (Ctrl+S)'], discard: ['undo', 'Buang perubahan'], keys: ['keyboard', 'Pintasan keyboard']};
-$$('#menuPop [data-m]').forEach(b => { const [ic, l] = MENU[b.dataset.m]; b.innerHTML = `${icon(ic)}${l}`; });
+const MENU = {
+  new: ['plus', 'Project baru'],
+  open: ['folder', 'Buka project'],
+  save: ['download', 'Simpan (Ctrl+S)'],
+  discard: ['undo', 'Buang perubahan'],
+  mcp: ['link', 'Koneksi MCP (CapCut Desktop)'],
+  importDraft: ['upload', 'Impor Draft CapCut (.json)'],
+  exportDraft: ['download', 'Unduh Draft CapCut (.json)'],
+  keys: ['keyboard', 'Pintasan keyboard']
+};
+$$('#menuPop [data-m]').forEach(b => { const [ic, l] = MENU[b.dataset.m] || ['more', b.dataset.m]; b.innerHTML = `${icon(ic)}${l}`; });
 const menu = open => { $('#menuPop').hidden = !open; $('#menuBtn').setAttribute('aria-expanded', open); };
 $('#menuBtn').onclick = ev => { ev.stopPropagation(); menu($('#menuPop').hidden); };
 document.addEventListener('pointerdown', ev => { if (!ev.target.closest('.menuw')) menu(false); });
-$('#menuPop').onclick = ev => { const b = ev.target.closest('[data-m]'); if (!b) return; menu(false); ({new: newProjectInfo, open: openInfo, save: saveNow, discard: discard, keys: showKeys})[b.dataset.m](); };
+$('#menuPop').onclick = ev => {
+  const b = ev.target.closest('[data-m]'); if (!b) return; menu(false);
+  ({
+    new: newProjectInfo, open: openInfo, save: saveNow, discard: discard,
+    mcp: openMcpModal, importDraft: () => $('#draftFileIn').click(),
+    exportDraft: downloadCapCutDraft, keys: showKeys
+  })[b.dataset.m]();
+};
+function updateMcpStatus() {
+  const btn = $('#mcpBtn'), lbl = $('#mcpLbl'), dot = $('#mcpDot');
+  if (!btn || !lbl || !dot) return;
+  if (Studio.connected) {
+    dot.className = 'mcp-dot on';
+    lbl.textContent = 'MCP Terhubung';
+    btn.title = `Terhubung ke CapCut Desktop (${Studio.bridge}). Klik untuk pengaturan / ganti project.`;
+    $('#demoTag').hidden = true;
+  } else {
+    dot.className = 'mcp-dot off';
+    lbl.textContent = 'Connect MCP';
+    btn.title = 'Belum terhubung ke CapCut Desktop. Klik untuk menghubungkan ke MCP Server.';
+    if (DEMO) $('#demoTag').hidden = false;
+  }
+}
+$('#mcpBtn').onclick = () => openMcpModal();
+$('#draftFileIn').onchange = e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const parsed = Studio.parseCapCutDraft(ev.target.result);
+      snap();
+      S = parsed;
+      DRAFT = file.name.replace(/\.json$/i, '') || 'CapCut_Project';
+      $('#pnameT').textContent = DRAFT;
+      norm();
+      commit();
+      Studio.toast(`Draft CapCut '${DRAFT}' berhasil diimpor: ${S.elements.length} elemen di ${S.tracks.length} track!`);
+    } catch (err) {
+      Studio.toast('Gagal mengimpor draft JSON: ' + err.message);
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+};
+async function openMcpModal() {
+  const isConn = Studio.connected;
+  let drafts = [];
+  if (isConn) {
+    try { drafts = await Studio.api('/api/drafts'); } catch {}
+  }
+  const m = Studio.modal(`
+    <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
+      ${icon('link')}
+      <h3 style="margin:0">Koneksi MCP CapCut Desktop</h3>
+      <span class="grow"></span>
+      <span class="st ${isConn ? 'ada' : 'tidak'}">${isConn ? '🟢 Terhubung ke PC' : '🔴 Terputus / Mandiri'}</span>
+    </div>
+
+    ${isConn ? `
+      <div style="background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:12px;margin-bottom:12px;display:grid;gap:8px">
+        <div style="font-size:12px;color:var(--muted)">Server Bridge: <b style="color:var(--fg)">${esc(Studio.bridge)}</b></div>
+        <div style="font-size:12px;color:var(--muted)">Project CapCut Aktif: <b style="color:var(--accent)">${esc(DRAFT)}</b></div>
+        <div style="display:flex;gap:6px;align-items:center;margin-top:4px">
+          <label style="font-size:12px;color:var(--muted);white-space:nowrap">Pilih Project:</label>
+          <select id="mcpDraftSwitch" style="flex:1">
+            ${drafts.map(d => `<option value="${esc(d.name)}" ${d.name === DRAFT ? 'selected' : ''}>${esc(d.name)}</option>`).join('')}
+          </select>
+          <button class="btn primary" id="mcpSwitchBtn">Buka</button>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:12px">
+        <button class="btn" id="mcpDeployBtn">${icon('send')} Deploy Perubahan ke CapCut</button>
+        <button class="btn ghost" id="mcpDisconnectBtn" style="color:#f08b8b">${icon('trash')} Putuskan Koneksi</button>
+      </div>
+    ` : `
+      <p style="font-size:12.5px;color:var(--muted);margin-top:0">
+        Hubungkan website ini langsung ke aplikasi CapCut Desktop di komputer Anda. Anda bisa mengedit project lokal secara live, menyinkronkan aset, dan men-deploy hasil editan ke file CapCut asli.
+      </p>
+
+      <div style="background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:12px;display:grid;gap:8px;margin-bottom:12px">
+        <div class="prop" style="grid-template-columns:90px 1fr">
+          <span>Bridge URL</span>
+          <input type="text" id="mcpBridgeUrl" value="${esc(Studio.bridge || 'http://127.0.0.1:8765')}" placeholder="http://127.0.0.1:8765">
+        </div>
+        <div class="prop" style="grid-template-columns:90px 1fr">
+          <span>Token (opsional)</span>
+          <input type="text" id="mcpBridgeToken" value="${esc(Studio.token || '')}" placeholder="Token keamanan bridge">
+        </div>
+        <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:4px">
+          <button class="btn primary" id="mcpTestAndConnect">${icon('link')} Tes & Hubungkan</button>
+        </div>
+        <div id="mcpTestFeedback" style="font-size:12px;display:none;padding:8px;border-radius:6px"></div>
+      </div>
+
+      <div style="background:#ffffff05;border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:12px;display:grid;gap:6px">
+        <b style="font-size:12px;color:var(--fg)">Cara Menjalankan MCP di Komputer Anda:</b>
+        <ol style="margin:0;padding-left:18px;font-size:11.5px;color:var(--muted);display:grid;gap:4px">
+          <li>Buka terminal/powershell di folder proyek:</li>
+          <li>Jalankan: <code style="color:var(--accent);background:#000a;padding:2px 6px;border-radius:3px">python -m creative_mcp.bridge</code> atau <code style="color:var(--accent);background:#000a;padding:2px 6px;border-radius:3px">mcp-capcut editor</code></li>
+          <li>Jika dibuka dari Vercel HTTPS dan browser meminta izin Private Network Access, klik <b>Allow</b> (Izinkan).</li>
+        </ol>
+      </div>
+    `}
+
+    <div style="background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;display:grid;gap:6px">
+      <b style="font-size:12px">Alternatif: Impor / Ekspor Tanpa Server</b>
+      <span style="font-size:11.5px;color:var(--muted)">Anda dapat langsung mengimpor file <code>draft_content.json</code> dari folder CapCut PC Anda untuk diedit di website Vercel, lalu mengunduhnya kembali saat selesai.</span>
+      <div style="display:flex;gap:6px;margin-top:4px">
+        <button class="btn" id="mcpImportJsonBtn">${icon('upload')} Impor draft_content.json</button>
+        <button class="btn" id="mcpExportJsonBtn">${icon('download')} Unduh draft_content.json</button>
+      </div>
+    </div>
+
+    <div class="actions" style="margin-top:14px">
+      <button class="btn" data-close>Tutup</button>
+    </div>
+  `);
+
+  m.el.querySelector('[data-close]').onclick = () => m.close();
+
+  const imp = m.el.querySelector('#mcpImportJsonBtn');
+  if (imp) imp.onclick = () => { m.close(); $('#draftFileIn').click(); };
+
+  const exp = m.el.querySelector('#mcpExportJsonBtn');
+  if (exp) exp.onclick = () => { m.close(); downloadCapCutDraft(); };
+
+  const switchBtn = m.el.querySelector('#mcpSwitchBtn');
+  if (switchBtn) {
+    switchBtn.onclick = async () => {
+      const nextDraft = m.el.querySelector('#mcpDraftSwitch').value;
+      if (!nextDraft) return;
+      DRAFT = nextDraft;
+      $('#draftSel').value = DRAFT;
+      $('#pnameT').textContent = DRAFT;
+      sel = null; undoS.length = redoS.length = 0;
+      await load();
+      m.close();
+      Studio.toast('Membuka project CapCut: ' + DRAFT);
+    };
+  }
+
+  const depBtn = m.el.querySelector('#mcpDeployBtn');
+  if (depBtn) {
+    depBtn.onclick = async () => {
+      try {
+        clearTimeout(saveT);
+        await Studio.api('/api/scene', {method: 'PUT', body: JSON.stringify(S)});
+        const r = await Studio.api('/api/deploy?draft=' + encodeURIComponent(DRAFT), {method: 'POST'});
+        Studio.toast(`Deploy berhasil: ${r.elements} elemen (+${r.added}, −${r.removed}). Buka CapCut untuk melihat perubahan!`, 6000);
+        await load();
+        m.close();
+      } catch (err) {
+        Studio.toast('Deploy gagal: ' + err.message, 5000);
+      }
+    };
+  }
+
+  const discBtn = m.el.querySelector('#mcpDisconnectBtn');
+  if (discBtn) {
+    discBtn.onclick = () => {
+      Studio.disconnect();
+      DEMO = true;
+      loadDemo();
+      updateMcpStatus();
+      m.close();
+      Studio.toast('Koneksi MCP diputuskan. Beralih ke mode mandiri.');
+    };
+  }
+
+  const testBtn = m.el.querySelector('#mcpTestAndConnect');
+  if (testBtn) {
+    testBtn.onclick = async () => {
+      const fb = m.el.querySelector('#mcpTestFeedback');
+      fb.style.display = 'block';
+      fb.style.background = '#333';
+      fb.style.color = '#fff';
+      fb.textContent = 'Mengecek koneksi ke MCP bridge...';
+      const url = m.el.querySelector('#mcpBridgeUrl').value.trim();
+      const tok = m.el.querySelector('#mcpBridgeToken').value.trim();
+      
+      const ping = await Studio.pingBridge(url);
+      if (!ping.ok) {
+        fb.style.background = '#4a1515';
+        fb.style.color = '#ff9999';
+        fb.innerHTML = `Gagal menjangkau server bridge di <b>${esc(url)}</b>.<br>Pastikan Anda telah menjalankan <code style="color:#fff">python -m creative_mcp.bridge</code> di PC.<br>Detail error: ${esc(ping.error)}`;
+        return;
+      }
+      
+      const conn = await Studio.setBridge(url, tok);
+      if (conn) {
+        fb.style.background = '#154a24';
+        fb.style.color = '#99ffb0';
+        fb.textContent = 'Berhasil terhubung ke MCP CapCut Desktop! Memuat project...';
+        setTimeout(async () => {
+          m.close();
+          await boot();
+          updateMcpStatus();
+          Studio.toast('Berhasil terhubung ke MCP CapCut Desktop!');
+        }, 800);
+      } else {
+        fb.style.background = '#4a3a15';
+        fb.style.color = '#ffea99';
+        fb.innerHTML = `Server aktif, namun token autentikasi tidak cocok.<br>Cek token di terminal PC dengan: <code style="color:#fff">mcp-capcut token</code>`;
+      }
+    };
+  }
+}
 function newProjectInfo() {
   Studio.modal(`<h3>Project baru</h3><p>Project video dibuat di CapCut: buat project kosong di CapCut, simpan, lalu buka Studio lagi. Project itu akan muncul di Menu → Buka project.</p><p>${DEMO ? 'Saat ini Anda di mode demo; contoh project tersimpan di browser ini.' : 'Anda juga bisa meminta AI membuat project lewat mcp-capcut.'}</p><div class="actions"><button class="btn primary" data-close>Mengerti</button></div>`).el.querySelector('[data-close]').onclick = ev => ev.target.closest('.modal-back').remove();
 }
@@ -389,6 +616,7 @@ function showKeys() {
 }
 async function boot() {
   await Studio.connect();
+  updateMcpStatus();
   if (Studio.connected) {
     const drafts = await Studio.api('/api/drafts').catch(() => []);
     if (!drafts.length) { DEMO = true; Studio.toast('Belum ada project CapCut. Membuka mode demo.'); }
@@ -618,6 +846,27 @@ async function recordVideoExport() {
       ctx.globalAlpha = Math.max(0, Math.min(1, val(el, 'alpha')));
 
       if (['photo', 'video'].includes(el.type)) {
+        if (el.mask && el.mask !== 'none') {
+          const mw = el.mask_w !== undefined ? el.mask_w : 80;
+          const mh = el.mask_h !== undefined ? el.mask_h : 80;
+          const ew = canvas.width * sc;
+          const eh = canvas.height * sc;
+          ctx.beginPath();
+          if (el.mask === 'rect') {
+            const w = ew * (mw / 100), h = eh * (mh / 100);
+            ctx.rect(-w / 2, -h / 2, w, h);
+          } else if (el.mask === 'circle') {
+            ctx.ellipse(0, 0, ew * mw / 200, eh * mh / 200, 0, 0, Math.PI * 2);
+          } else if (el.mask === 'film') {
+            ctx.rect(-ew / 2, -eh * 0.36, ew, eh * 0.72);
+          } else if (el.mask === 'split') {
+            const p = el.mask_pos !== undefined ? el.mask_pos : 50;
+            ctx.rect(-ew / 2, -eh / 2, ew, eh * (p / 100));
+          } else {
+            ctx.rect(-ew * 0.4, -eh * 0.4, ew * 0.8, eh * 0.8);
+          }
+          ctx.clip();
+        }
         const m = mediaNode(el);
         const ew = canvas.width * sc;
         const eh = canvas.height * sc;
@@ -650,6 +899,145 @@ function speakText(txt) {
   u.rate = 1.0;
   window.speechSynthesis.speak(u);
   Studio.toast('Memutar Text-to-Speech: ' + (txt || '').slice(0, 30));
+}
+
+function openTtsModal(el) {
+  if (!('speechSynthesis' in window)) return Studio.toast('Text-to-Speech tidak didukung browser ini.');
+  const voices = window.speechSynthesis.getVoices();
+  const defTxt = el?.text || 'Halo, selamat datang di video saya!';
+  const m = Studio.modal(`
+    <h3>${icon('volume')} Text-to-Speech (Suara AI)</h3>
+    <p style="font-size:12px;color:var(--muted)">Ubah teks menjadi narasi audio otomatis menggunakan Web Speech API browser.</p>
+    <div style="display:grid;gap:8px;margin-bottom:12px">
+      <textarea id="ttsTextInput" rows="3" style="width:100%">${esc(defTxt)}</textarea>
+      <div class="prop" style="grid-template-columns:70px 1fr">
+        <span>Suara</span>
+        <select id="ttsVoiceSelect">
+          ${voices.length ? voices.map((v, i) => `<option value="${i}">${esc(v.name)} (${esc(v.lang)})</option>`).join('') : '<option value="0">Default System</option>'}
+        </select>
+      </div>
+      <div class="prop" style="grid-template-columns:70px 1fr 40px">
+        <span>Kecepatan</span>
+        <input type="range" id="ttsRate" min="0.5" max="2" step="0.1" value="1.0">
+        <span class="mono" id="ttsRateVal">1.0×</span>
+      </div>
+      <div class="prop" style="grid-template-columns:70px 1fr 40px">
+        <span>Nada</span>
+        <input type="range" id="ttsPitch" min="0.5" max="1.5" step="0.1" value="1.0">
+        <span class="mono" id="ttsPitchVal">1.0</span>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;justify-content:flex-end">
+      <button class="btn" id="ttsPreviewBtn">${icon('play')} Pratinjau Suara</button>
+      <button class="btn primary" id="ttsAddToTimelineBtn">${icon('plus')} Tambah ke Timeline</button>
+      <button class="btn" data-close>Tutup</button>
+    </div>
+  `);
+
+  m.el.querySelector('#ttsRate').oninput = e => { m.el.querySelector('#ttsRateVal').textContent = e.target.value + '×'; };
+  m.el.querySelector('#ttsPitch').oninput = e => { m.el.querySelector('#ttsPitchVal').textContent = e.target.value; };
+  m.el.querySelector('[data-close]').onclick = () => { window.speechSynthesis.cancel(); m.close(); };
+
+  m.el.querySelector('#ttsPreviewBtn').onclick = () => {
+    window.speechSynthesis.cancel();
+    const txt = m.el.querySelector('#ttsTextInput').value.trim();
+    if (!txt) return;
+    const u = new SpeechSynthesisUtterance(txt);
+    const vIdx = +m.el.querySelector('#ttsVoiceSelect').value;
+    if (voices[vIdx]) u.voice = voices[vIdx];
+    u.rate = +m.el.querySelector('#ttsRate').value;
+    u.pitch = +m.el.querySelector('#ttsPitch').value;
+    window.speechSynthesis.speak(u);
+  };
+
+  m.el.querySelector('#ttsAddToTimelineBtn').onclick = () => {
+    const txt = m.el.querySelector('#ttsTextInput').value.trim();
+    if (!txt) return;
+    const estDur = Math.max(1.5, +(txt.length * 0.08).toFixed(2));
+    snap();
+    let atTrack = S.tracks.find(k => k.type === 'audio');
+    if (!atTrack) {
+      atTrack = { id: uid(), type: 'audio' };
+      S.tracks.push(atTrack);
+    }
+    const ttsEl = {
+      id: uid(),
+      track: atTrack.id,
+      type: 'audio',
+      src: '',
+      name: 'TTS: ' + txt.slice(0, 20),
+      text: txt,
+      is_tts: true,
+      start: +t.toFixed(3),
+      duration: estDur,
+      source_start: 0,
+      speed: 1,
+      volume: 1.0,
+      fade_in: 0,
+      fade_out: 0,
+      keyframes: {}
+    };
+    S.elements.push(ttsEl);
+    commit();
+    render();
+    m.close();
+    Studio.toast('Klip suara TTS berhasil ditambahkan ke timeline!');
+  };
+}
+
+function startLiveAutoCaption() {
+  const SpeechRec = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRec) return Studio.toast('Speech Recognition tidak didukung browser ini. Gunakan Google Chrome.');
+  const recog = new SpeechRec();
+  recog.lang = 'id-ID';
+  recog.continuous = true;
+  recog.interimResults = false;
+  const statusEl = $('#recStatus');
+  if (statusEl) {
+    statusEl.style.display = 'block';
+    statusEl.style.color = '#3dd68c';
+    statusEl.textContent = 'Mendengarkan suara mikrofon... Berbicaralah untuk membuat subtitle otomatis.';
+  }
+  Studio.toast('Auto-Caption aktif. Berbicaralah di mikrofon...');
+  recog.onresult = ev => {
+    for (let i = ev.resultIndex; i < ev.results.length; i++) {
+      if (ev.results[i].isFinal) {
+        const text = ev.results[i][0].transcript.trim();
+        if (text) {
+          if (statusEl) statusEl.textContent = 'Terdeteksi: "' + text + '"';
+          const dur = Math.max(2, Math.min(6, text.length * 0.12));
+          snap();
+          let tk = S.tracks.find(k => k.type === 'text');
+          if (!tk) {
+            tk = { id: uid(), type: 'text' };
+            S.tracks.push(tk);
+          }
+          const subEl = newElement({
+            new: 'text',
+            text: text,
+            font_size: 7,
+            y: -0.62,
+            tstyle: RAKIT.TS.sub,
+            duration: dur,
+            anim: { in: { id: 'fade', d: 0.2 }, out: { id: 'fade', d: 0.2 } }
+          }, t);
+          subEl.track = tk.id;
+          S.elements.push(subEl);
+          t += dur + 0.2;
+          commit();
+          render();
+        }
+      }
+    }
+  };
+  recog.onerror = err => {
+    if (statusEl) statusEl.textContent = 'Error mic: ' + err.error;
+    Studio.toast('Auto-Caption error: ' + err.error);
+  };
+  recog.onend = () => {
+    if (statusEl) statusEl.textContent = 'Sesi Auto-Caption selesai.';
+  };
+  try { recog.start(); } catch (err) { Studio.toast('Gagal mengakses mikrofon: ' + err.message); }
 }
 
 $('#export').onclick = () => {
@@ -773,6 +1161,26 @@ function drawFrame(m, maxW) { // returns a canvas with the current frame of an <
   const w = m.videoWidth || m.naturalWidth, h = m.videoHeight || m.naturalHeight; if (!w || !h) return null;
   const f = Math.min(1, maxW / Math.max(w, h)), k = document.createElement('canvas'); k.width = Math.round(w * f); k.height = Math.round(h * f); k.getContext('2d').drawImage(m, 0, 0, k.width, k.height); return k;
 }
+function maskPathValue(e) {
+  if (!e.mask || e.mask === 'none') return '';
+  const mw = e.mask_w !== undefined ? e.mask_w : 80;
+  const mh = e.mask_h !== undefined ? e.mask_h : 80;
+  const pos = e.mask_pos !== undefined ? e.mask_pos : 50;
+  const inv = !!e.mask_inv;
+  if (e.mask === 'circle') return `ellipse(${(mw / 2).toFixed(1)}% ${(mh / 2).toFixed(1)}% at 50% 50%)`;
+  if (e.mask === 'rect') {
+    const rx = ((100 - mw) / 2).toFixed(1), ry = ((100 - mh) / 2).toFixed(1), rad = e.mask_rad ? `${e.mask_rad}px` : '8px';
+    return `inset(${ry}% ${rx}% ${ry}% ${rx}% round ${rad})`;
+  }
+  if (e.mask === 'film') {
+    const top = ((100 - mh * 0.7) / 2).toFixed(1);
+    return `inset(${top}% 0% ${top}% 0%)`;
+  }
+  if (e.mask === 'split') return inv ? `inset(0% 0% ${(100 - pos).toFixed(1)}% 0%)` : `inset(${pos.toFixed(1)}% 0% 0% 0%)`;
+  if (e.mask === 'star') return `polygon(50% 0%, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%)`;
+  if (e.mask === 'heart') return `polygon(50% 80%, 20% 50%, 20% 25%, 35% 15%, 50% 30%, 65% 15%, 80% 25%, 80% 50%)`;
+  return '';
+}
 function renderStage() {
   const st = $('#stage'); st.innerHTML = ''; st.style.background = S.bg?.color || '#000';
   const sc = document.createElement('div'); sc.id = 'scene'; st.appendChild(sc);
@@ -793,7 +1201,7 @@ function renderStage() {
     const tl = t - e.start, A = RAKIT.animState(e, Math.max(0, Math.min(e.duration, tl))), tr = trxState(e), X = tr ? trxLook(tr) : {};
     if (X.flash) flash = Math.max(flash, X.flash);
     const d = document.createElement('div'); d.className = `el ${e.type}${sel === e.id ? ' sel' : ''}`; d.dataset.id = e.id;
-    const scale = val(e, 'scale'), alpha = val(e, 'alpha') * A.a * (X.a ?? 1), filt = [];
+    const scale = val(e, 'scale') * (e.stabilize ? 1.06 : 1), alpha = val(e, 'alpha') * A.a * (X.a ?? 1), filt = [];
     if (e.type === 'text') {
       const fs = (e.font_size || 8) * sh / 300 * scale; let txt = e.countdown ? String(Math.max(1, Math.ceil(e.duration - Math.max(0, tl) - 1e-6))) : e.text, rest = '';
       if (A.chars < 1) { const n = Math.floor(txt.length * A.chars); rest = txt.slice(n); txt = txt.slice(0, n); }
@@ -809,7 +1217,10 @@ function renderStage() {
     d.style.left = cx - d.offsetWidth / 2 + 'px'; d.style.top = cy - d.offsetHeight / 2 + 'px';
     d.style.transform = `translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px) rotate(${val(e, 'rotation') + A.r + (X.r || 0)}deg) scale(${(A.s * (X.s ?? 1)).toFixed(4)})`;
     if (bl > .05) filt.push(`blur(${bl.toFixed(2)}px)`); const f = filt.filter(Boolean).join(' '); if (f) d.style.filter = f;
-    const clip = Math.min(A.clip, X.wipe ?? 1); if (clip < 1) d.style.clipPath = `inset(0 ${((1 - clip) * 100).toFixed(2)}% 0 0)`;
+    const clip = Math.min(A.clip, X.wipe ?? 1);
+    const mp = maskPathValue(e);
+    if (mp) d.style.clipPath = mp;
+    else if (clip < 1) d.style.clipPath = `inset(0 ${((1 - clip) * 100).toFixed(2)}% 0 0)`;
     d.style.opacity = Math.max(0, Math.min(1, alpha));
     if (sel === e.id && !playing) d.insertAdjacentHTML('beforeend', '<div class="h scale" data-h="scale"></div><div class="h rot" data-h="rot"></div>');
     d.onpointerdown = ev => stageDrag(ev, e, d);
@@ -1229,6 +1640,20 @@ function renderInsp(live) {
       h += sec('chroma', 'Chroma Key (Green Screen)', `<label class="row" style="gap:6px;font-size:12px"><input type="checkbox" id="pChroma" ${e.chroma ? 'checked' : ''}> Hapus latar belakang (Chroma Key)</label>
         ${e.chroma ? `<div class="prop" style="grid-template-columns:66px 1fr"><span>Warna</span><input type="color" id="pChromaCol" value="${e.chroma_color || '#00FF00'}"></div>
         <div class="prop" style="grid-template-columns:66px 1fr 40px"><span>Kekuatan</span><input type="range" id="pChromaTol" min="0.1" max="0.9" step="0.05" value="${e.chroma_tol || 0.45}"><span class="mono" style="font-size:11px">${Math.round((e.chroma_tol || 0.45)*100)}%</span></div>` : ''}`);
+      h += sec('mask', 'Masking (Topeng Klip)', `<div class="chipg">
+        ${[['none', 'Tanpa Mask'], ['rect', 'Persegi'], ['circle', 'Lingkaran'], ['film', 'Film'], ['split', 'Bagi (Split)'], ['star', 'Bintang'], ['heart', 'Hati']].map(([k, l]) => `<button type="button" data-mask="${k}" class="${(e.mask || 'none') === k ? 'on' : ''}">${l}</button>`).join('')}
+      </div>
+      ${e.mask && e.mask !== 'none' ? `
+        <div class="prop" style="grid-template-columns:70px 1fr 40px"><span>Lebar</span><input type="range" id="pMaskW" min="10" max="100" step="1" value="${e.mask_w ?? 80}"><span class="mono">${e.mask_w ?? 80}%</span></div>
+        <div class="prop" style="grid-template-columns:70px 1fr 40px"><span>Tinggi</span><input type="range" id="pMaskH" min="10" max="100" step="1" value="${e.mask_h ?? 80}"><span class="mono">${e.mask_h ?? 80}%</span></div>
+        ${e.mask === 'rect' ? `<div class="prop" style="grid-template-columns:70px 1fr 40px"><span>Radius</span><input type="range" id="pMaskRad" min="0" max="60" step="1" value="${e.mask_rad ?? 8}"><span class="mono">${e.mask_rad ?? 8}px</span></div>` : ''}
+        ${e.mask === 'split' ? `<div class="prop" style="grid-template-columns:70px 1fr 40px"><span>Posisi</span><input type="range" id="pMaskPos" min="0" max="100" step="1" value="${e.mask_pos ?? 50}"><span class="mono">${e.mask_pos ?? 50}%</span></div>` : ''}
+        <label class="row" style="gap:6px;font-size:12px;margin-top:6px"><input type="checkbox" id="pMaskInv" ${e.mask_inv ? 'checked' : ''}> Balik Mask (Invert)</label>
+      ` : ''}`);
+      if (e.type === 'video') {
+        h += sec('stabilize', 'Stabilisasi Video', `<label class="row" style="gap:6px;font-size:12px"><input type="checkbox" id="pStab" ${e.stabilize ? 'checked' : ''}> Stabilisasi Kamera Otomatis</label>
+          <p class="note2">${e.stabilize ? 'Stabilisasi aktif: Meminimalkan guncangan kamera dengan auto-crop 1.06× dan camera smoothing.' : 'Mengoreksi guncangan video handheld / kamera bergoyang.'}</p>`);
+      }
     }
     if (['video', 'photo'].includes(e.type)) { const trs = LIB.filter(i => i.kind === 'transition');
       h += sec('trans', 'Transisi ke klip berikutnya', `<select id="pTr"><option value="">Tanpa transisi</option>${trs.map(i => `<option value="${esc(i.key)}" ${e.transition?.key === i.key ? 'selected' : ''}>${esc(i.name)}${i.vip ? ' (PRO)' : ''}</option>`).join('')}</select>
@@ -1327,7 +1752,20 @@ function renderInsp(live) {
   const pChroma = $('#pChroma'); if (pChroma) pChroma.onchange = () => { snap(); e.chroma = pChroma.checked; commit(); renderStage(); renderInsp(); };
   const pChromaCol = $('#pChromaCol'); if (pChromaCol) pChromaCol.onchange = () => { snap(); e.chroma_color = pChromaCol.value; commit(); renderStage(); };
   const pChromaTol = $('#pChromaTol'); if (pChromaTol) pChromaTol.oninput = () => { snap(); e.chroma_tol = +pChromaTol.value; pChromaTol.nextElementSibling.textContent = Math.round(e.chroma_tol * 100) + '%'; commit(); renderStage(); };
-  const pTTS = $('#pTTS'); if (pTTS) pTTS.onclick = () => speakText(e.text);
+  I.querySelectorAll('[data-mask]').forEach(b => b.onclick = () => {
+    snap();
+    e.mask = b.dataset.mask === 'none' ? null : b.dataset.mask;
+    commit();
+    renderStage();
+    renderInsp();
+  });
+  const pmw = $('#pMaskW'); if (pmw) pmw.oninput = () => { snap(); e.mask_w = +pmw.value; pmw.nextElementSibling.textContent = pmw.value + '%'; commit(); renderStage(); };
+  const pmh = $('#pMaskH'); if (pmh) pmh.oninput = () => { snap(); e.mask_h = +pmh.value; pmh.nextElementSibling.textContent = pmh.value + '%'; commit(); renderStage(); };
+  const pmrad = $('#pMaskRad'); if (pmrad) pmrad.oninput = () => { snap(); e.mask_rad = +pmrad.value; pmrad.nextElementSibling.textContent = pmrad.value + 'px'; commit(); renderStage(); };
+  const pmpos = $('#pMaskPos'); if (pmpos) pmpos.oninput = () => { snap(); e.mask_pos = +pmpos.value; pmpos.nextElementSibling.textContent = pmpos.value + '%'; commit(); renderStage(); };
+  const pminv = $('#pMaskInv'); if (pminv) pminv.onchange = () => { snap(); e.mask_inv = pminv.checked; commit(); renderStage(); };
+  const pstab = $('#pStab'); if (pstab) pstab.onchange = () => { snap(); e.stabilize = pstab.checked; commit(); renderStage(); renderInsp(); Studio.toast(e.stabilize ? 'Stabilisasi kamera diaktifkan' : 'Stabilisasi dinonaktifkan'); };
+  const pTTS = $('#pTTS'); if (pTTS) pTTS.onclick = () => openTtsModal(e);
   const spTabNorm = $('#spTabNorm'); if (spTabNorm) spTabNorm.onclick = () => { spMode = 'normal'; renderInsp(); };
   const spTabCurve = $('#spTabCurve'); if (spTabCurve) spTabCurve.onclick = () => { spMode = 'curve'; renderInsp(); };
   const pRev = $('#pRev'); if (pRev) pRev.onchange = () => { snap(); e.reverse = pRev.checked; commit(); renderStage(); Studio.toast(e.reverse ? 'Putar mundur aktif' : 'Putar normal'); };
@@ -1352,7 +1790,7 @@ function renderInsp(live) {
 // ---------- media panel ----------
 const TABS = [['media', 'film', 'Media'], ['audio', 'music', 'Audio'], ['text', 'text', 'Teks'], ['sticker', 'star', 'Stiker'], ['effect', 'wand', 'Efek'], ['transition', 'transition', 'Transisi'], ['filter', 'filter', 'Filter'], ['adjust', 'adjust', 'Penyesuaian']];
 const LIBSUB = [['all', 'Semua'], ['free', 'Gratis'], ['pro', 'PRO']];
-const SUBS = {media: [['local', 'Lokal'], ['library', 'Library']], audio: [['music', 'Musik'], ['sfx', 'Efek suara']], text: [['template', 'Template'], ['default', 'Teks default'], ['script', 'Teks dari naskah']],
+const SUBS = {media: [['local', 'Lokal'], ['library', 'Library']], audio: [['music', 'Musik'], ['sfx', 'Efek suara']], text: [['template', 'Template'], ['default', 'Teks default'], ['script', 'Teks / Auto-Caption']],
   sticker: LIBSUB, effect: LIBSUB, transition: LIBSUB, filter: LIBSUB, adjust: [['all', 'Penyesuaian'], ['free', 'Gratis']]};
 function renderTabs() {
   $('#mtabs').innerHTML = TABS.map(([k, i, l]) => `<button data-t="${k}" class="${k === tab ? 'on' : ''}" aria-pressed="${k === tab}">${icon(i)}${l}</button>`).join('');
@@ -1427,10 +1865,17 @@ function renderMedia() {
   } else if (tab === 'text' && cur === 'script') {
     B.insertAdjacentHTML('beforeend', `<div class="shead">${icon('text')} Teks dari naskah</div>`);
     note('Tempel naskah, satu kalimat per baris. Studio membuat teks bergaya subtitle yang dibagi rata sepanjang klip terpilih (atau seluruh video jika tidak ada klip dipilih).');
-    B.insertAdjacentHTML('beforeend', `<textarea id="script" rows="7" placeholder="Halo semuanya!\nHari ini kita ke pasar pagi.\nIkuti sampai akhir ya."></textarea><button type="button" class="btn primary" id="scriptGo">${icon('plus')} Buat teks</button>`);
+    B.insertAdjacentHTML('beforeend', `<textarea id="script" rows="5" placeholder="Halo semuanya!\nHari ini kita ke pasar pagi.\nIkuti sampai akhir ya."></textarea><button type="button" class="btn primary" id="scriptGo">${icon('plus')} Buat teks dari naskah</button>
+      <div style="margin-top:16px;border-top:1px solid var(--border);padding-top:12px">
+        <div class="shead">${icon('volume')} Auto-Caption Otomatis (Mikrofon / Suara)</div>
+        <p style="margin:0 0 8px;color:var(--muted);font-size:12px">Hasilkan subtitle otomatis langsung secara real-time dari rekaman suara via Web Speech API browser.</p>
+        <button type="button" class="btn" id="startCaptionBtn">${icon('play')} Mulai Auto-Caption (Suara/Mic)</button>
+        <div id="recStatus" style="display:none;margin-top:8px;font-size:12px;padding:6px 10px;background:#1a2820;border-radius:6px;border:1px solid #2e5a40"></div>
+      </div>`);
     try { $('#script').value = sessionStorage.getItem('rakitScript') || ''; } catch {}
     $('#script').oninput = ev => { try { sessionStorage.setItem('rakitScript', ev.target.value); } catch {} };
     $('#scriptGo').onclick = () => captionsFromScript($('#script').value);
+    const scb = $('#startCaptionBtn'); if (scb) scb.onclick = () => startLiveAutoCaption();
   } else if (tab === 'text') {
     const P = cur === 'template' ? RAKIT.TEXTS.map(x => [x.name, {new: 'text', ...JSON.parse(JSON.stringify(x)), color: x.tstyle.color && x.tstyle.color !== 'transparent' ? x.tstyle.color : '#FFFFFF'}])
       : [['Judul', {new: 'text', text: 'JUDUL', font_size: 14, y: .5}], ['Subjudul', {new: 'text', text: 'Subjudul', font_size: 9}], ['Caption', {new: 'text', text: 'Tulis caption di sini', font_size: 7, y: -.6}], ['Sorotan', {new: 'text', text: 'PROMO!', font_size: 12, color: '#F4C95D'}]];

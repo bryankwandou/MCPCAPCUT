@@ -214,7 +214,8 @@ class Handler(BaseHTTPRequestHandler):
             f = (EDITOR_DIR / (path.lstrip("/") or "index.html")).resolve()
             if f.is_relative_to(EDITOR_DIR) and f.is_file():
                 return self._file(f)
-            return self._json({"error": "not found"}, 404)
+        if path == "/api/ping":
+            return self._json({"status": "ok", "app": "mcp-capcut", "version": "0.1.0", "connected": True})
         if not self._authed(q):
             return self._json({"error": "bad token"}, 401)
         try:
@@ -356,3 +357,25 @@ def editor_url(draft: str) -> dict:
     if hosted:
         out["vercel"] = f"{hosted.rstrip('/')}/#{frag}"
     return out
+
+
+if __name__ == "__main__":
+    import time
+    b = start()
+    t = token()
+    print("=" * 60)
+    print("mcp-capcut Bridge Server Aktif!")
+    print(f"Bridge URL: {b}")
+    print(f"Token:      {t}")
+    print(f"Editor:     {b}/#bridge={b}&token={t}")
+    hosted = os.getenv("CREATIVE_EDITOR_URL")
+    if hosted:
+        print(f"Vercel:     {hosted.rstrip('/')}/#bridge={b}&token={t}")
+    print("=" * 60)
+    print("Tekan Ctrl+C untuk berhenti.")
+    try:
+        while True:
+            time.sleep(3600)
+    except KeyboardInterrupt:
+        print("\nBridge dihentikan.")
+

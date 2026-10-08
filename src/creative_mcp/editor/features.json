@@ -58,8 +58,8 @@
    "cat": "Timeline",
    "name": "Kurva kecepatan",
    "tier": "free",
-   "studio": "tidak",
-   "note": ""
+   "studio": "ada",
+   "note": "5 preset: Hero, Bullet, Montage, Jump, Flash."
   },
   {
    "app": "capcut",
@@ -82,16 +82,16 @@
    "cat": "Timeline",
    "name": "Freeze frame, reverse, stabilisasi",
    "tier": "free",
-   "studio": "tidak",
-   "note": ""
+   "studio": "ada",
+   "note": "Freeze frame, putar mundur, dan stabilisasi kamera (auto-crop 1.06x)."
   },
   {
    "app": "capcut",
    "cat": "Timeline",
    "name": "Chroma key & mask",
    "tier": "free",
-   "studio": "tidak",
-   "note": ""
+   "studio": "ada",
+   "note": "Green screen + 6 preset mask (persegi, lingkaran, film, split, bintang, hati)."
   },
   {
    "app": "capcut",
@@ -114,16 +114,16 @@
    "cat": "Teks & audio",
    "name": "Auto caption",
    "tier": "terbatas",
-   "studio": "tidak",
-   "note": "AI di server CapCut."
+   "studio": "ada",
+   "note": "Via Web Speech API browser (real-time dari mikrofon)."
   },
   {
    "app": "capcut",
    "cat": "Teks & audio",
    "name": "Text-to-speech",
    "tier": "terbatas",
-   "studio": "tidak",
-   "note": "AI di server CapCut."
+   "studio": "ada",
+   "note": "Via Web Speech Synthesis API browser."
   },
   {
    "app": "capcut",
@@ -146,8 +146,8 @@
    "cat": "Teks & audio",
    "name": "Vocal isolation & pengurang noise",
    "tier": "pro",
-   "studio": "tidak",
-   "note": ""
+   "studio": "sebagian",
+   "note": "Efek suara (deep, chipmunk, echo, radio) via Web Audio API."
   },
   {
    "app": "capcut",
