@@ -186,7 +186,34 @@ def sync_root_meta(name: str, duration_us: int = 0) -> None:
 def save(name: str, data: dict) -> None:
     f = _content_file(name)
     shutil.copy2(f, f.with_suffix(".json.bak"))
-    f.write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
+    raw_bytes = json.dumps(data, ensure_ascii=False, indent=2).encode("utf-8")
+    f.write_bytes(raw_bytes)
+    # Also sync draft_info.json
+    (f.parent / "draft_info.json").write_bytes(raw_bytes)
+    # Also sync Timelines architecture if project uses it
+    draft_id = data.get("id")
+    if draft_id:
+        tl_dir = f.parent / "Timelines"
+        if tl_dir.exists():
+            proj_f = tl_dir / "project.json"
+            if proj_f.exists():
+                try:
+                    p = json.loads(proj_f.read_text(encoding="utf-8"))
+                    p["id"] = draft_id
+                    p["main_timeline_id"] = draft_id
+                    if p.get("timelines"):
+                        p["timelines"][0]["id"] = draft_id
+                    proj_f.write_text(json.dumps(p, ensure_ascii=False, indent=2), encoding="utf-8")
+                except Exception:
+                    pass
+            tl_sub = tl_dir / draft_id
+            tl_sub.mkdir(parents=True, exist_ok=True)
+            (tl_sub / "draft_content.json").write_bytes(raw_bytes)
+            (tl_sub / "draft_info.json").write_bytes(raw_bytes)
+            # Remove any stale timeline folder
+            for sub in tl_dir.iterdir():
+                if sub.is_dir() and sub.name != draft_id:
+                    shutil.rmtree(sub, ignore_errors=True)
     sync_root_meta(name, data.get("duration", 0))
 
 
