@@ -36,9 +36,9 @@ Kolom **Paket** = paket yang dibutuhkan di aplikasi aslinya. Kolom **Rakit** = k
 | Teks & audio | Template & animasi teks | Gratis terbatas | 🟡 Sebagian | Dari library pribadi (yang pernah Anda pakai). |
 | Teks & audio | Auto caption | Gratis terbatas | ✅ Ada | Via Web Speech API browser (real-time dari mikrofon). |
 | Teks & audio | Text-to-speech | Gratis terbatas | ✅ Ada | Via Web Speech Synthesis API browser. |
-| Teks & audio | Musik & efek suara bawaan | Gratis terbatas | ❌ Tidak | Pakai audio milik sendiri. |
+| Teks & audio | Musik & efek suara bawaan | Gratis | ✅ Ada | 8 musik tema & 13 efek suara bawaan Rakit langsung disintesis dan siap pakai di browser. |
 | Teks & audio | Volume, fade in & fade out | Gratis | ✅ Ada |  |
-| Teks & audio | Vocal isolation & pengurang noise | **Pro** | 🟡 Sebagian | Efek suara (deep, chipmunk, echo, radio) via Web Audio API. |
+| Teks & audio | Vocal isolation & pengurang noise | **Pro** | 🟡 Sebagian | 4 efek suara (Suara Berat, Chipmunk, Echo/Gema, Radio HT) diproses via Web Audio API DSP. |
 | Efek | Stiker | Gratis terbatas | 🟡 Sebagian | Dari library pribadi, item VIP ditandai PRO. |
 | Efek | Efek video | Gratis terbatas | 🟡 Sebagian | Dari library pribadi; tampilannya dirender CapCut. |
 | Efek | Filter & adjust | Gratis terbatas | 🟡 Sebagian | Dari library pribadi. |

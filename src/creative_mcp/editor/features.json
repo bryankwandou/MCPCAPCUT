@@ -129,9 +129,9 @@
    "app": "capcut",
    "cat": "Teks & audio",
    "name": "Musik & efek suara bawaan",
-   "tier": "terbatas",
-   "studio": "tidak",
-   "note": "Pakai audio milik sendiri."
+   "tier": "free",
+   "studio": "ada",
+   "note": "8 musik tema & 13 efek suara bawaan Rakit langsung disintesis dan siap pakai di browser."
   },
   {
    "app": "capcut",
@@ -147,7 +147,7 @@
    "name": "Vocal isolation & pengurang noise",
    "tier": "pro",
    "studio": "sebagian",
-   "note": "Efek suara (deep, chipmunk, echo, radio) via Web Audio API."
+   "note": "4 efek suara (Suara Berat, Chipmunk, Echo/Gema, Radio HT) diproses via Web Audio API DSP."
   },
   {
    "app": "capcut",

@@ -403,18 +403,111 @@ $('#menuPop').onclick = ev => {
     exportDraft: downloadCapCutDraft, keys: showKeys
   })[b.dataset.m]();
 };
+let activeDirHandle = null, activeDraftFileHandle = null, localDraftProjects = [];
+
+async function openCapCutFolderPicker() {
+  if (!('showDirectoryPicker' in window)) {
+    Studio.toast('Browser ini tidak mendukung File System Access API. Gunakan Google Chrome atau Microsoft Edge desktop.');
+    return false;
+  }
+  try {
+    const dir = await window.showDirectoryPicker({
+      id: 'capcut_projects_folder',
+      mode: 'readwrite'
+    });
+    activeDirHandle = dir;
+    localDraftProjects = [];
+
+    let isSingle = false;
+    try {
+      const f = await dir.getFileHandle('draft_content.json');
+      isSingle = true;
+      localDraftProjects.push({ name: dir.name, dirHandle: dir, fileHandle: f });
+    } catch {}
+
+    if (!isSingle) {
+      for await (const [name, handle] of dir.entries()) {
+        if (handle.kind === 'directory') {
+          try {
+            const f = await handle.getFileHandle('draft_content.json');
+            localDraftProjects.push({ name, dirHandle: handle, fileHandle: f });
+          } catch {}
+        }
+      }
+    }
+
+    if (!localDraftProjects.length) {
+      Studio.toast('Tidak ditemukan draft_content.json di folder yang dipilih. Pastikan Anda memilih folder com.lveditor.draft atau subfolder project CapCut.');
+      return false;
+    }
+
+    await loadDraftFromHandle(localDraftProjects[0]);
+    Studio.toast(`Terhubung ke folder CapCut lokal (${localDraftProjects.length} project ditemukan). Membuka '${DRAFT}'!`, 5000);
+    return true;
+  } catch (err) {
+    if (err.name !== 'AbortError') {
+      Studio.toast('Gagal membuka folder: ' + err.message);
+    }
+    return false;
+  }
+}
+
+async function loadDraftFromHandle(proj) {
+  activeDraftFileHandle = proj.fileHandle;
+  const file = await proj.fileHandle.getFile();
+  const text = await file.text();
+  const parsed = Studio.parseCapCutDraft(text);
+  snap();
+  S = parsed;
+  DRAFT = proj.name;
+  $('#pnameT').textContent = DRAFT;
+  DEMO = false;
+  $('#demoTag').hidden = true;
+  norm();
+  fitTl();
+  render();
+  updateMcpStatus();
+}
+
+async function saveToLocalCapCutFolder() {
+  if (!activeDraftFileHandle) return false;
+  try {
+    const data = buildCapCutDraftData(S);
+    const writable = await activeDraftFileHandle.createWritable();
+    await writable.write(JSON.stringify(data, null, 2));
+    await writable.close();
+    status('Tersimpan langsung ke CapCut PC');
+    Studio.toast(`Tersimpan langsung ke file draft CapCut lokal (${DRAFT})!`, 4000);
+    return true;
+  } catch (err) {
+    Studio.toast('Gagal menyimpan ke folder CapCut: ' + err.message);
+    return false;
+  }
+}
+
 function updateMcpStatus() {
   const btn = $('#mcpBtn'), lbl = $('#mcpLbl'), dot = $('#mcpDot');
   if (!btn || !lbl || !dot) return;
   if (Studio.connected) {
     dot.className = 'mcp-dot on';
+    dot.style.background = '#3dd68c';
+    dot.style.boxShadow = '0 0 8px #3dd68c';
     lbl.textContent = 'MCP Terhubung';
-    btn.title = `Terhubung ke CapCut Desktop (${Studio.bridge}). Klik untuk pengaturan / ganti project.`;
+    btn.title = `Terhubung ke CapCut Desktop Bridge (${Studio.bridge}). Klik untuk pengaturan / ganti project.`;
+    $('#demoTag').hidden = true;
+  } else if (activeDraftFileHandle) {
+    dot.className = 'mcp-dot on';
+    dot.style.background = '#46c2ff';
+    dot.style.boxShadow = '0 0 8px #46c2ff';
+    lbl.textContent = 'CapCut Folder Aktif';
+    btn.title = `Tersinkron langsung dengan folder CapCut: ${DRAFT}. Klik untuk pengaturan.`;
     $('#demoTag').hidden = true;
   } else {
     dot.className = 'mcp-dot off';
+    dot.style.background = '';
+    dot.style.boxShadow = '';
     lbl.textContent = 'Connect MCP';
-    btn.title = 'Belum terhubung ke CapCut Desktop. Klik untuk menghubungkan ke MCP Server.';
+    btn.title = 'Belum terhubung ke CapCut Desktop. Klik untuk menghubungkan ke MCP Server atau Folder CapCut.';
     if (DEMO) $('#demoTag').hidden = false;
   }
 }
@@ -442,6 +535,7 @@ $('#draftFileIn').onchange = e => {
 };
 async function openMcpModal() {
   const isConn = Studio.connected;
+  const isFolder = !!activeDraftFileHandle;
   let drafts = [];
   if (isConn) {
     try { drafts = await Studio.api('/api/drafts'); } catch {}
@@ -449,13 +543,42 @@ async function openMcpModal() {
   const m = Studio.modal(`
     <div style="display:flex;align-items:center;gap:8px;margin-bottom:12px">
       ${icon('link')}
-      <h3 style="margin:0">Koneksi MCP CapCut Desktop</h3>
+      <h3 style="margin:0">Koneksi CapCut Desktop & MCP</h3>
       <span class="grow"></span>
-      <span class="st ${isConn ? 'ada' : 'tidak'}">${isConn ? '🟢 Terhubung ke PC' : '🔴 Terputus / Mandiri'}</span>
+      <span class="st ${isConn || isFolder ? 'ada' : 'tidak'}">${isConn ? '🟢 Bridge MCP Terhubung' : isFolder ? '🔵 Folder CapCut Aktif' : '🔴 Terputus / Mandiri'}</span>
     </div>
 
-    ${isConn ? `
-      <div style="background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:12px;margin-bottom:12px;display:grid;gap:8px">
+    <!-- Opsi 1: Direct File System Access API (Recommended for Vercel) -->
+    <div style="background:var(--surface-2);border:1px solid ${isFolder ? '#46c2ff88' : 'var(--line)'};border-radius:8px;padding:12px;margin-bottom:12px;display:grid;gap:8px">
+      <div style="display:flex;align-items:center;gap:6px">
+        <b>1. Hubungkan Folder CapCut Langsung (File System API)</b>
+        <span class="tier free" style="background:#1a3242;color:#8fd8e6">Bebas Blokir Browser / Tanpa Terminal</span>
+      </div>
+      <p style="margin:0;font-size:12px;color:var(--muted)">
+        Akses folder draft CapCut di komputer Anda langsung dari browser (Chrome / Edge). Website ini dapat membaca semua project CapCut dan menyimpan (Ctrl+S) langsung ke file disk PC tanpa perlu menjalankan server bridge!
+      </p>
+      <div style="display:flex;gap:6px;align-items:center;flex-wrap:wrap">
+        <button class="btn primary" id="mcpOpenFolderBtn">${icon('folder')} ${isFolder ? 'Ganti Folder CapCut' : 'Pilih Folder Draft CapCut'}</button>
+        ${localDraftProjects.length > 1 ? `
+          <select id="mcpLocalDraftSel" style="flex:1;min-width:140px">
+            ${localDraftProjects.map(p => `<option value="${esc(p.name)}" ${p.name === DRAFT ? 'selected' : ''}>${esc(p.name)}</option>`).join('')}
+          </select>
+          <button class="btn" id="mcpLoadLocalDraftBtn">Buka</button>
+        ` : ''}
+        ${isFolder ? `<button class="btn" id="mcpSaveLocalBtn" style="color:var(--accent)">${icon('download')} Simpan ke Disk</button>` : ''}
+      </div>
+      <div style="font-size:11px;color:var(--muted)">
+        Lokasi default di Windows: <code>%LOCALAPPDATA%\\CapCut\\User Data\\Projects\\com.lveditor.draft</code>
+      </div>
+    </div>
+
+    <!-- Opsi 2: MCP Bridge Server -->
+    <div style="background:var(--surface-2);border:1px solid ${isConn ? '#3dd68c88' : 'var(--line)'};border-radius:8px;padding:12px;margin-bottom:12px;display:grid;gap:8px">
+      <div style="display:flex;align-items:center;gap:6px">
+        <b>2. Koneksi MCP Bridge Server (creative_mcp.bridge)</b>
+        <span class="tier free">Full AI MCP Agent Tools</span>
+      </div>
+      ${isConn ? `
         <div style="font-size:12px;color:var(--muted)">Server Bridge: <b style="color:var(--fg)">${esc(Studio.bridge)}</b></div>
         <div style="font-size:12px;color:var(--muted)">Project CapCut Aktif: <b style="color:var(--accent)">${esc(DRAFT)}</b></div>
         <div style="display:flex;gap:6px;align-items:center;margin-top:4px">
@@ -465,17 +588,14 @@ async function openMcpModal() {
           </select>
           <button class="btn primary" id="mcpSwitchBtn">Buka</button>
         </div>
-      </div>
-      <div style="display:flex;gap:8px;margin-bottom:12px">
-        <button class="btn" id="mcpDeployBtn">${icon('send')} Deploy Perubahan ke CapCut</button>
-        <button class="btn ghost" id="mcpDisconnectBtn" style="color:#f08b8b">${icon('trash')} Putuskan Koneksi</button>
-      </div>
-    ` : `
-      <p style="font-size:12.5px;color:var(--muted);margin-top:0">
-        Hubungkan website ini langsung ke aplikasi CapCut Desktop di komputer Anda. Anda bisa mengedit project lokal secara live, menyinkronkan aset, dan men-deploy hasil editan ke file CapCut asli.
-      </p>
-
-      <div style="background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:12px;display:grid;gap:8px;margin-bottom:12px">
+        <div style="display:flex;gap:8px;margin-top:4px">
+          <button class="btn" id="mcpDeployBtn">${icon('send')} Deploy Perubahan ke CapCut</button>
+          <button class="btn ghost" id="mcpDisconnectBtn" style="color:#f08b8b">${icon('trash')} Putuskan Koneksi Bridge</button>
+        </div>
+      ` : `
+        <p style="margin:0;font-size:12px;color:var(--muted)">
+          Hubungkan ke server MCP bridge di PC untuk menyinkronkan timeline dan mengizinkan AI Agent (Claude Desktop, Cursor, Antigravity) mengontrol CapCut secara real-time.
+        </p>
         <div class="prop" style="grid-template-columns:90px 1fr">
           <span>Bridge URL</span>
           <input type="text" id="mcpBridgeUrl" value="${esc(Studio.bridge || 'http://127.0.0.1:8765')}" placeholder="http://127.0.0.1:8765">
@@ -488,21 +608,18 @@ async function openMcpModal() {
           <button class="btn primary" id="mcpTestAndConnect">${icon('link')} Tes & Hubungkan</button>
         </div>
         <div id="mcpTestFeedback" style="font-size:12px;display:none;padding:8px;border-radius:6px"></div>
-      </div>
+        <div style="background:#ffffff05;border:1px solid var(--line);border-radius:6px;padding:8px 10px;font-size:11.5px;color:var(--muted);display:grid;gap:4px">
+          <div>Perintah menjalankan bridge di terminal PC:</div>
+          <code style="color:var(--accent);background:#000a;padding:3px 6px;border-radius:3px;user-select:all">uv run creative-mcp bridge</code>
+          <div style="font-size:10.5px">Catatan Vercel HTTPS: Jika browser menampilkan peringatan Private Network Access, pilih Allow (Izinkan).</div>
+        </div>
+      `}
+    </div>
 
-      <div style="background:#ffffff05;border:1px solid var(--line);border-radius:8px;padding:10px 12px;margin-bottom:12px;display:grid;gap:6px">
-        <b style="font-size:12px;color:var(--fg)">Cara Menjalankan MCP di Komputer Anda:</b>
-        <ol style="margin:0;padding-left:18px;font-size:11.5px;color:var(--muted);display:grid;gap:4px">
-          <li>Buka terminal/powershell di folder proyek:</li>
-          <li>Jalankan: <code style="color:var(--accent);background:#000a;padding:2px 6px;border-radius:3px">python -m creative_mcp.bridge</code> atau <code style="color:var(--accent);background:#000a;padding:2px 6px;border-radius:3px">mcp-capcut editor</code></li>
-          <li>Jika dibuka dari Vercel HTTPS dan browser meminta izin Private Network Access, klik <b>Allow</b> (Izinkan).</li>
-        </ol>
-      </div>
-    `}
-
+    <!-- Opsi 3: File JSON Manual -->
     <div style="background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:10px 12px;display:grid;gap:6px">
-      <b style="font-size:12px">Alternatif: Impor / Ekspor Tanpa Server</b>
-      <span style="font-size:11.5px;color:var(--muted)">Anda dapat langsung mengimpor file <code>draft_content.json</code> dari folder CapCut PC Anda untuk diedit di website Vercel, lalu mengunduhnya kembali saat selesai.</span>
+      <b style="font-size:12px">3. Impor / Unduh File draft_content.json Mandiri</b>
+      <span style="font-size:11.5px;color:var(--muted)">Impor atau ekspor manual file timeline JSON resmi CapCut.</span>
       <div style="display:flex;gap:6px;margin-top:4px">
         <button class="btn" id="mcpImportJsonBtn">${icon('upload')} Impor draft_content.json</button>
         <button class="btn" id="mcpExportJsonBtn">${icon('download')} Unduh draft_content.json</button>
@@ -515,6 +632,34 @@ async function openMcpModal() {
   `);
 
   m.el.querySelector('[data-close]').onclick = () => m.close();
+
+  const openFolderBtn = m.el.querySelector('#mcpOpenFolderBtn');
+  if (openFolderBtn) {
+    openFolderBtn.onclick = async () => {
+      const ok = await openCapCutFolderPicker();
+      if (ok) m.close();
+    };
+  }
+
+  const loadLocalBtn = m.el.querySelector('#mcpLoadLocalDraftBtn');
+  if (loadLocalBtn) {
+    loadLocalBtn.onclick = async () => {
+      const selName = m.el.querySelector('#mcpLocalDraftSel').value;
+      const proj = localDraftProjects.find(p => p.name === selName);
+      if (proj) {
+        await loadDraftFromHandle(proj);
+        m.close();
+        Studio.toast(`Membuka project '${proj.name}'`);
+      }
+    };
+  }
+
+  const saveLocalBtn = m.el.querySelector('#mcpSaveLocalBtn');
+  if (saveLocalBtn) {
+    saveLocalBtn.onclick = async () => {
+      await saveToLocalCapCutFolder();
+    };
+  }
 
   const imp = m.el.querySelector('#mcpImportJsonBtn');
   if (imp) imp.onclick = () => { m.close(); $('#draftFileIn').click(); };
@@ -557,6 +702,7 @@ async function openMcpModal() {
   if (discBtn) {
     discBtn.onclick = () => {
       Studio.disconnect();
+      activeDraftFileHandle = null;
       DEMO = true;
       loadDemo();
       updateMcpStatus();
@@ -580,7 +726,7 @@ async function openMcpModal() {
       if (!ping.ok) {
         fb.style.background = '#4a1515';
         fb.style.color = '#ff9999';
-        fb.innerHTML = `Gagal menjangkau server bridge di <b>${esc(url)}</b>.<br>Pastikan Anda telah menjalankan <code style="color:#fff">python -m creative_mcp.bridge</code> di PC.<br>Detail error: ${esc(ping.error)}`;
+        fb.innerHTML = `Gagal menjangkau server bridge di <b>${esc(url)}</b>.<br>Pastikan Anda telah menjalankan <code style="color:#fff">uv run creative-mcp bridge</code> di PC.<br>Detail error: ${esc(ping.error)}`;
         return;
       }
       
@@ -694,12 +840,7 @@ function save() {
 const restore = j => { S = JSON.parse(j); if (sel && !S.elements.some(e => e.id === sel)) sel = null; render(); save(); };
 function undo() { if (undoS.length) { redoS.push(JSON.stringify(S)); restore(undoS.pop()); } }
 function redo() { if (redoS.length) { undoS.push(JSON.stringify(S)); restore(redoS.pop()); } }
-function saveNow() {
-  clearTimeout(saveT);
-  if (DEMO) return status(lsSet('demoScene', JSON.stringify(S)) ? 'Tersimpan di browser (demo)' : 'Demo tidak bisa disimpan di browser ini');
-  Studio.api('/api/scene', {method: 'PUT', body: JSON.stringify(S)}).then(r => { version = r.version; status('Pratinjau tersimpan, belum di-deploy'); Studio.toast('Tersimpan'); }).catch(err => status('Gagal menyimpan: ' + err.message));
-}
-function downloadCapCutDraft() {
+function buildCapCutDraftData(scene) {
   const US = 1000000;
   const draftId = uid();
   const durUs = Math.round(total() * US);
@@ -707,10 +848,10 @@ function downloadCapCutDraft() {
     id: draftId,
     version: 360000,
     new_version: "110.0.0",
-    name: S.draft || 'Rakit_Export',
+    name: scene.draft || DRAFT || 'Rakit_Export',
     duration: durUs,
     fps: 30.0,
-    canvas_config: { width: S.width, height: S.height, ratio: "original", background: null },
+    canvas_config: { width: scene.width || 1080, height: scene.height || 1920, ratio: "original", background: null },
     config: { maintrack_adsorb: true },
     platform: { os: "windows", app_source: "cc" },
     materials: {
@@ -725,16 +866,16 @@ function downloadCapCutDraft() {
     relationships: []
   };
 
-  for (const track of S.tracks) {
+  for (const track of scene.tracks) {
     const tObj = { id: track.id, type: track.type, attribute: 0, flag: 0, segments: [] };
-    const els = S.elements.filter(e => e.track === track.id);
+    const els = scene.elements.filter(e => e.track === track.id);
     for (const el of els) {
       const mid = uid();
       if (['video', 'photo'].includes(el.type)) {
         data.materials.videos.push({
           id: mid, type: el.type, path: el.src || '', material_name: el.name || 'Media',
           duration: Math.round(((el.source_start || 0) + el.duration) * US),
-          width: S.width, height: S.height
+          width: scene.width || 1080, height: scene.height || 1920
         });
       } else if (el.type === 'audio') {
         data.materials.audios.push({
@@ -760,16 +901,59 @@ function downloadCapCutDraft() {
     }
     data.tracks.push(tObj);
   }
+  return data;
+}
 
+async function saveNow() {
+  clearTimeout(saveT);
+  if (activeDraftFileHandle) {
+    await saveToLocalCapCutFolder();
+    return;
+  }
+  if (DEMO) return status(lsSet('demoScene', JSON.stringify(S)) ? 'Tersimpan di browser (demo)' : 'Demo tidak bisa disimpan di browser ini');
+  Studio.api('/api/scene', {method: 'PUT', body: JSON.stringify(S)}).then(r => { version = r.version; status('Pratinjau tersimpan, belum di-deploy'); Studio.toast('Tersimpan'); }).catch(err => status('Gagal menyimpan: ' + err.message));
+}
+
+function downloadCapCutDraft() {
+  const data = buildCapCutDraftData(S);
   const jsonStr = JSON.stringify(data, null, 2);
   const blob = new Blob([jsonStr], { type: 'application/json' });
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
-  a.download = 'draft_content.json';
+  a.download = `${S.draft || 'draft_content'}.json`;
   document.body.appendChild(a);
   a.click();
   a.remove();
   Studio.toast('draft_content.json berhasil diunduh. Pindahkan ke folder proyek CapCut Desktop.');
+}
+
+function applyChromaToCanvas(sourceNode, targetCanvas, colorHex = '#00FF00', tol = 0.45) {
+  const w = sourceNode.videoWidth || sourceNode.naturalWidth || 640;
+  const h = sourceNode.videoHeight || sourceNode.naturalHeight || 360;
+  if (!w || !h) return;
+  if (targetCanvas.width !== w || targetCanvas.height !== h) {
+    targetCanvas.width = w;
+    targetCanvas.height = h;
+  }
+  const ctx = targetCanvas.getContext('2d', { willReadFrequently: true });
+  ctx.drawImage(sourceNode, 0, 0, w, h);
+  try {
+    const imgData = ctx.getImageData(0, 0, w, h);
+    const d = imgData.data;
+    const hex = (colorHex || '#00FF00').replace('#', '');
+    const kr = parseInt(hex.slice(0, 2), 16) || 0;
+    const kg = parseInt(hex.slice(2, 4), 16) || 255;
+    const kb = parseInt(hex.slice(4, 6), 16) || 0;
+    const maxDist = tol * 441.67;
+    for (let i = 0; i < d.length; i += 4) {
+      const dr = d[i] - kr, dg = d[i+1] - kg, db = d[i+2] - kb;
+      const dist = Math.sqrt(dr * dr + dg * dg + db * db);
+      if (dist < maxDist) {
+        d[i + 3] = 0;
+      }
+    }
+    ctx.putImageData(imgData, 0, 0);
+  } catch {}
 }
 
 async function recordVideoExport() {
@@ -870,7 +1054,15 @@ async function recordVideoExport() {
         const m = mediaNode(el);
         const ew = canvas.width * sc;
         const eh = canvas.height * sc;
-        try { ctx.drawImage(m, -ew / 2, -eh / 2, ew, eh); } catch {}
+        try {
+          if (el.chroma) {
+            const off = document.createElement('canvas');
+            applyChromaToCanvas(m, off, el.chroma_color || '#00FF00', el.chroma_tol || 0.45);
+            ctx.drawImage(off, -ew / 2, -eh / 2, ew, eh);
+          } else {
+            ctx.drawImage(m, -ew / 2, -eh / 2, ew, eh);
+          }
+        } catch {}
       } else if (el.type === 'text') {
         const fs = (el.font_size || 8) * canvas.height / 300 * sc;
         ctx.font = `bold ${fs}px Plus Jakarta Sans, sans-serif`;
@@ -1045,10 +1237,16 @@ $('#export').onclick = () => {
   const m = Studio.modal(`<h3>Ekspor & Unduh Proyek</h3>
     <p>Pilih metode ekspor untuk video atau project CapCut Anda:</p>
     <div style="display:grid;gap:10px;margin-block:12px">
+      ${activeDraftFileHandle ? `
+      <div style="background:var(--surface-2);border:1px solid #46c2ff88;border-radius:8px;padding:12px;display:grid;gap:6px">
+        <b>Simpan Langsung ke File CapCut di PC</b>
+        <span style="font-size:12px;color:var(--muted)">Tulis perubahan langsung ke file draft <code>${esc(DRAFT)}</code> di disk PC Anda via File System API.</span>
+        <button class="btn primary" id="xSaveDirect" style="margin-top:4px">${icon('download')} Simpan ke Disk PC</button>
+      </div>` : ''}
       <div style="background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:12px;display:grid;gap:6px">
         <b>1. Unduh Draft CapCut (.json)</b>
         <span style="font-size:12px;color:var(--muted)">Unduh file <code>draft_content.json</code> standar ByteDance CapCut. Anda dapat langsung memindahkannya ke folder <code>CapCut/User Data/Projects/com.lveditor.draft/</code> untuk diedit di aplikasi desktop CapCut.exe Anda.</span>
-        <button class="btn primary" id="xDownloadDraft" style="margin-top:4px">${icon('download')} Unduh draft_content.json</button>
+        <button class="btn" id="xDownloadDraft" style="margin-top:4px">${icon('download')} Unduh draft_content.json</button>
       </div>
       <div style="background:var(--surface-2);border:1px solid var(--line);border-radius:8px;padding:12px;display:grid;gap:6px">
         <b>2. Render & Unduh Video Langsung (.webm)</b>
@@ -1064,6 +1262,14 @@ $('#export').onclick = () => {
     </div>
     <div class="actions"><button class="btn" data-close>Tutup</button></div>`);
   closeBtn(m);
+
+  const saveDirect = m.el.querySelector('#xSaveDirect');
+  if (saveDirect) {
+    saveDirect.onclick = async () => {
+      m.close();
+      await saveToLocalCapCutFolder();
+    };
+  }
 
   m.el.querySelector('#xDownloadDraft').onclick = () => {
     downloadCapCutDraft();
@@ -1209,9 +1415,26 @@ function renderStage() {
       d.innerHTML = `<span class="tx" style="${RAKIT.textCss(e.tstyle, fs)}">${esc(txt)}${rest ? `<span style="opacity:0">${esc(rest)}</span>` : ''}</span>`;
     } else if (e.type === 'sticker') { const s = 120 * scale * sh / 600; d.style.width = d.style.height = s + 'px';
       d.innerHTML = e.preview ? `<img src="${esc(mediaUrl(e.preview))}" alt="">` : `<div class="ph">${icon('star')}<br>${esc(e.label || 'Stiker')}</div>`; }
-    else { d.style.width = sw * scale + 'px'; d.style.height = sh * scale + 'px'; d.appendChild(mediaNode(e));
+    else {
+      d.style.width = sw * scale + 'px'; d.style.height = sh * scale + 'px';
+      if (e.chroma) {
+        let cv = d.querySelector('canvas.chroma-cv');
+        if (!cv) {
+          cv = document.createElement('canvas');
+          cv.className = 'chroma-cv';
+          cv.style.width = '100%';
+          cv.style.height = '100%';
+          cv.style.objectFit = 'cover';
+          d.appendChild(cv);
+        }
+        const m = mediaNode(e);
+        applyChromaToCanvas(m, cv, e.chroma_color || '#00FF00', e.chroma_tol || 0.45);
+      } else {
+        d.appendChild(mediaNode(e));
+      }
       filt.push(lookCss(e.look), RAKIT.adjCss(e.adj), ...gF);
-      for (const ti of [RAKIT.tintCss(e.adj), ...gT]) if (ti) d.insertAdjacentHTML('beforeend', `<div class="tint" style="background:${ti}"></div>`); }
+      for (const ti of [RAKIT.tintCss(e.adj), ...gT]) if (ti) d.insertAdjacentHTML('beforeend', `<div class="tint" style="background:${ti}"></div>`);
+    }
     sc.appendChild(d);
     const [cx, cy] = toPx(val(e, 'x'), val(e, 'y')), dx = (A.dx + (X.dx || 0)) * sw, dy = (A.dy + (X.dy || 0)) * sh, bl = (A.blur + (X.blur || 0)) * sh / 600;
     d.style.left = cx - d.offsetWidth / 2 + 'px'; d.style.top = cy - d.offsetHeight / 2 + 'px';
@@ -1237,9 +1460,24 @@ function audioCtx() {
     const sp = actx.createChannelSplitter(2); bus.connect(sp); an = [0, 1].map(i => { const a = actx.createAnalyser(); a.fftSize = 512; sp.connect(a, i); return a; }); actx.bus = bus; } catch { actx = null; }
   return actx;
 }
-function tap(m) { // only same-origin/data/blob media: tapping cross-origin media would silence it
+function tap(m, e) { // only same-origin/data/blob media: tapping cross-origin media would silence it
   if (!actx || m._tap) return; m._tap = 1;
-  try { const u = new URL(m.currentSrc || m.src, location.href); if (!/^(data|blob):/.test(u.protocol) && u.origin !== location.origin) return; actx.createMediaElementSource(m).connect(actx.bus); } catch {}
+  try {
+    const u = new URL(m.currentSrc || m.src, location.href);
+    if (!/^(data|blob):/.test(u.protocol) && u.origin !== location.origin) return;
+    const src = actx.createMediaElementSource(m);
+    let target = actx.bus;
+    if (e?.voice_fx === 'radio') {
+      const bp = actx.createBiquadFilter(); bp.type = 'bandpass'; bp.frequency.value = 1200; bp.Q.value = 2.5;
+      src.connect(bp); bp.connect(target); return;
+    } else if (e?.voice_fx === 'echo') {
+      const delay = actx.createDelay(1.0); delay.delayTime.value = 0.22;
+      const fb = actx.createGain(); fb.gain.value = 0.45;
+      src.connect(delay); delay.connect(fb); fb.connect(delay);
+      delay.connect(target); src.connect(target); return;
+    }
+    src.connect(target);
+  } catch {}
 }
 function meter() {
   const bars = $$('#meter b'); if (!bars.length) return;
@@ -1268,14 +1506,16 @@ function mediaNode(e) {
     m.src = mediaUrl(e.src); m.dataset.src = e.src; media[e.id] = m;
   }
   if (e.type === 'video') {
-    const curSp = currentSpeed(e);
+    let curSp = currentSpeed(e);
+    if (e.voice_fx === 'chip') curSp *= 1.35;
+    else if (e.voice_fx === 'deep') curSp *= 0.78;
     const want = e.reverse ? Math.max(0, e.source_start + (end(e) - t) * curSp) : Math.max(0, e.source_start + (t - e.start) * curSp);
     const fwd = playing && rate > 0;
     m.playbackRate = Math.max(.0625, Math.min(16, curSp * Math.abs(rate)));
     m.volume = Math.min(1, fadeVol(e));
     m.muted = !!trackOf(e)?.muted;
     if (Math.abs(m.currentTime - want) > (fwd ? .3 : .06)) m.currentTime = want;
-    if (fwd && m.paused && t >= e.start) { tap(m); m.play().catch(() => {}); }
+    if (fwd && m.paused && t >= e.start) { tap(m, e); m.play().catch(() => {}); }
     if (!fwd && !m.paused) m.pause();
   }
   return m;
@@ -1286,7 +1526,10 @@ function syncAudio(e) {
   let a = media[e.id]; if (!a || a.dataset.src !== e.src) { a?.pause?.(); a = media[e.id] = new Audio(mediaUrl(e.src)); a.dataset.src = e.src; }
   if (!playing || rate < 0 || t < e.start || t >= end(e) || trackOf(e)?.muted) { a.pause(); return; }
   const want = e.source_start + (t - e.start) * e.speed; if (Math.abs(a.currentTime - want) > .3) a.currentTime = want;
-  a.playbackRate = Math.max(.0625, Math.min(16, e.speed * rate)); a.volume = Math.min(1, fadeVol(e)); if (a.paused) { tap(a); a.play().catch(() => {}); }
+  let sp = e.speed * rate;
+  if (e.voice_fx === 'chip') sp *= 1.35;
+  else if (e.voice_fx === 'deep') sp *= 0.78;
+  a.playbackRate = Math.max(.0625, Math.min(16, sp)); a.volume = Math.min(1, fadeVol(e)); if (a.paused) { tap(a, e); a.play().catch(() => {}); }
 }
 function stageDrag(ev, e, node) {
   ev.preventDefault(); ev.stopPropagation(); if (playing) togglePlay();
@@ -1637,9 +1880,17 @@ function renderInsp(live) {
       const smp = RAKIT.sampleImg();
       h += sec('look', 'Filter klip', `<div class="chipg flt"><button type="button" data-look="" class="${!e.look ? 'on' : ''}"><img src="${smp}" alt="">Tanpa</button>${RAKIT.FILTERS.map(i => `<button type="button" data-look="${i.key}" class="${e.look === i.key ? 'on' : ''}"><img src="${smp}" alt="" style="filter:${i.css}">${esc(i.name)}</button>`).join('')}</div>${e.look ? PREV_NOTE : ''}`);
       h += sec('adj', 'Penyesuaian', adjSliders(e.adj) + '<p class="note2">Pratinjau saja (tidak ikut di-deploy).</p>');
-      h += sec('chroma', 'Chroma Key (Green Screen)', `<label class="row" style="gap:6px;font-size:12px"><input type="checkbox" id="pChroma" ${e.chroma ? 'checked' : ''}> Hapus latar belakang (Chroma Key)</label>
-        ${e.chroma ? `<div class="prop" style="grid-template-columns:66px 1fr"><span>Warna</span><input type="color" id="pChromaCol" value="${e.chroma_color || '#00FF00'}"></div>
-        <div class="prop" style="grid-template-columns:66px 1fr 40px"><span>Kekuatan</span><input type="range" id="pChromaTol" min="0.1" max="0.9" step="0.05" value="${e.chroma_tol || 0.45}"><span class="mono" style="font-size:11px">${Math.round((e.chroma_tol || 0.45)*100)}%</span></div>` : ''}`);
+      h += sec('chroma', 'Chroma Key (Hapus Latar Belakang)', `<label class="row" style="gap:6px;font-size:12px"><input type="checkbox" id="pChroma" ${e.chroma ? 'checked' : ''}> Hapus latar belakang (Chroma Key)</label>
+        ${e.chroma ? `
+          <div class="chips" style="margin-block:4px">
+            <button type="button" class="btn sm" data-ck="#00FF00">Green Screen</button>
+            <button type="button" class="btn sm" data-ck="#0000FF">Blue Screen</button>
+            <button type="button" class="btn sm" data-ck="#000000">Layar Hitam</button>
+            <button type="button" class="btn sm" data-ck="#FFFFFF">Layar Putih</button>
+          </div>
+          <div class="prop" style="grid-template-columns:66px 1fr"><span>Warna</span><input type="color" id="pChromaCol" value="${e.chroma_color || '#00FF00'}"></div>
+          <div class="prop" style="grid-template-columns:66px 1fr 40px"><span>Kekuatan</span><input type="range" id="pChromaTol" min="0.1" max="0.9" step="0.05" value="${e.chroma_tol || 0.45}"><span class="mono" style="font-size:11px">${Math.round((e.chroma_tol || 0.45)*100)}%</span></div>
+          <p class="note2">Piksel latar belakang yang cocok dihilangkan langsung di pemutar dan saat ekspor video.</p>` : ''}`);
       h += sec('mask', 'Masking (Topeng Klip)', `<div class="chipg">
         ${[['none', 'Tanpa Mask'], ['rect', 'Persegi'], ['circle', 'Lingkaran'], ['film', 'Film'], ['split', 'Bagi (Split)'], ['star', 'Bintang'], ['heart', 'Hati']].map(([k, l]) => `<button type="button" data-mask="${k}" class="${(e.mask || 'none') === k ? 'on' : ''}">${l}</button>`).join('')}
       </div>
@@ -1752,6 +2003,7 @@ function renderInsp(live) {
   const pChroma = $('#pChroma'); if (pChroma) pChroma.onchange = () => { snap(); e.chroma = pChroma.checked; commit(); renderStage(); renderInsp(); };
   const pChromaCol = $('#pChromaCol'); if (pChromaCol) pChromaCol.onchange = () => { snap(); e.chroma_color = pChromaCol.value; commit(); renderStage(); };
   const pChromaTol = $('#pChromaTol'); if (pChromaTol) pChromaTol.oninput = () => { snap(); e.chroma_tol = +pChromaTol.value; pChromaTol.nextElementSibling.textContent = Math.round(e.chroma_tol * 100) + '%'; commit(); renderStage(); };
+  I.querySelectorAll('[data-ck]').forEach(b => b.onclick = () => { snap(); e.chroma_color = b.dataset.ck; commit(); renderStage(); renderInsp(); });
   I.querySelectorAll('[data-mask]').forEach(b => b.onclick = () => {
     snap();
     e.mask = b.dataset.mask === 'none' ? null : b.dataset.mask;
