@@ -330,12 +330,20 @@ class Handler(BaseHTTPRequestHandler):
                 left -= len(chunk)
 
 
+class ReusableThreadingHTTPServer(ThreadingHTTPServer):
+    allow_reuse_address = True
+    daemon_threads = True
+
+
 def start() -> str:
     """Start the bridge once (idempotent); returns its base URL."""
     global _server
     if _server is None:
-        _server = ThreadingHTTPServer(("127.0.0.1", port()), Handler)
-        threading.Thread(target=_server.serve_forever, daemon=True).start()
+        try:
+            _server = ReusableThreadingHTTPServer(("127.0.0.1", port()), Handler)
+            threading.Thread(target=_server.serve_forever, daemon=True).start()
+        except OSError:
+            pass  # Already running on port
     return f"http://127.0.0.1:{port()}"
 
 
