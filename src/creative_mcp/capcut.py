@@ -80,13 +80,18 @@ def sync_root_meta(name: str, duration_us: int = 0) -> None:
         cover_file = target / "draft_cover.jpg"
         json_file = target / "draft_content.json"
         
+        target_str = target.as_posix()
+        root_str = root.as_posix()
+        cover_str = cover_file.as_posix() if cover_file.exists() else ""
+        json_str = json_file.as_posix() if json_file.exists() else ""
+
         if not meta_file.exists():
-            data = {"all_draft_store": [], "draft_ids": 0, "root_path": str(root).replace("\\", "/")}
+            data = {"all_draft_store": [], "draft_ids": 0, "root_path": root_str}
         else:
             try:
                 data = json.loads(meta_file.read_text(encoding="utf-8"))
             except Exception:
-                data = {"all_draft_store": [], "draft_ids": 0, "root_path": str(root).replace("\\", "/")}
+                data = {"all_draft_store": [], "draft_ids": 0, "root_path": root_str}
 
         store = data.setdefault("all_draft_store", [])
         now_us = int(time.time() * US)
@@ -99,10 +104,15 @@ def sync_root_meta(name: str, duration_us: int = 0) -> None:
                 draft_id = m.get("draft_id")
             except Exception:
                 pass
+        if not draft_id and json_file.exists():
+            try:
+                c = json.loads(json_file.read_text(encoding="utf-8"))
+                draft_id = c.get("id")
+            except Exception:
+                pass
         if not draft_id:
             draft_id = str(uuid.uuid4()).lower()
 
-        target_str = str(target).replace("\\", "/")
         found = None
         for item in store:
             if item.get("draft_name") == name or item.get("draft_fold_path", "").replace("\\", "/") == target_str:
@@ -112,10 +122,14 @@ def sync_root_meta(name: str, duration_us: int = 0) -> None:
         if found:
             store.remove(found)
             found["tm_draft_modified"] = now_us
+            found["draft_root_path"] = root_str
+            found["draft_fold_path"] = target_str
+            found["draft_json_file"] = json_str
+            found["draft_id"] = draft_id
             if duration_us > 0:
                 found["tm_duration"] = duration_us
             if cover_file.exists():
-                found["draft_cover"] = str(cover_file).replace("\\", "/")
+                found["draft_cover"] = cover_str
             if json_file.exists():
                 found["draft_timeline_materials_size"] = json_file.stat().st_size
             store.insert(0, found)
@@ -128,18 +142,19 @@ def sync_root_meta(name: str, duration_us: int = 0) -> None:
                 "draft_cloud_template_id": "",
                 "draft_cloud_tutorial_info": "",
                 "draft_cloud_videocut_purchase_info": "",
-                "draft_cover": str(cover_file).replace("\\", "/") if cover_file.exists() else "",
+                "draft_cover": cover_str,
                 "draft_fold_path": target_str,
                 "draft_id": draft_id,
                 "draft_is_ai_shorts": False,
                 "draft_is_cloud_temp_draft": False,
+                "draft_is_infinite_canvas_draft": False,
                 "draft_is_invisible": False,
                 "draft_is_pippit_draft": False,
                 "draft_is_web_article_video": False,
-                "draft_json_file": str(json_file).replace("\\", "/"),
+                "draft_json_file": json_str,
                 "draft_name": name,
                 "draft_new_version": "",
-                "draft_root_path": str(root).replace("\\", "/"),
+                "draft_root_path": root_str,
                 "draft_timeline_materials_size": json_file.stat().st_size if json_file.exists() else 0,
                 "draft_type": "",
                 "draft_web_article_video_enter_from": "",
@@ -199,22 +214,29 @@ def create_draft(name: str, width: int = 1080, height: int = 1920, fps: float = 
     target = root / name
     if target.exists():
         raise FileExistsError(f"Draft '{name}' already exists")
+    draft_id = str(uuid.uuid4()).lower()
     if template:
         shutil.copytree(root / template, target)
         data = load(name)
-        data["id"] = _uid()
+        data["id"] = draft_id
         data["tracks"] = []
         for k in data.get("materials", {}):
             data["materials"][k] = []
         data["duration"] = 0
         data["canvas_config"].update(width=width, height=height)
         save(name, data)
+        if (target / "draft_info.json").exists():
+            (target / "draft_info.json").write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
     else:
         target.mkdir(parents=True)
         data = _empty_draft(width, height, fps)
-        (target / "draft_content.json").write_text(json.dumps(data), encoding="utf-8")
-    meta = {"draft_id": _uid(), "draft_name": name, "draft_fold_path": str(target),
-            "draft_root_path": str(root), "tm_draft_create": int(time.time() * US),
+        data["id"] = draft_id
+        content_json = json.dumps(data, ensure_ascii=False)
+        (target / "draft_content.json").write_text(content_json, encoding="utf-8")
+        (target / "draft_info.json").write_text(content_json, encoding="utf-8")
+    meta = {"draft_id": draft_id, "draft_name": name, "draft_fold_path": target.as_posix(),
+            "draft_root_path": root.as_posix(), "draft_cover": "draft_cover.jpg",
+            "tm_draft_create": int(time.time() * US),
             "tm_draft_modified": int(time.time() * US), "tm_duration": 0}
     meta_file = target / "draft_meta_info.json"
     if meta_file.exists():
@@ -223,7 +245,7 @@ def create_draft(name: str, width: int = 1080, height: int = 1920, fps: float = 
         meta = old
     meta_file.write_text(json.dumps(meta, ensure_ascii=False), encoding="utf-8")
     sync_root_meta(name)
-    return {"name": name, "path": str(target)}
+    return {"name": name, "path": target.as_posix()}
 
 
 def _track(data: dict, kind: str, index: int | None) -> dict:
