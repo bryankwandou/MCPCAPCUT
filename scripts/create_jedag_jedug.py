@@ -131,7 +131,7 @@ for idx, tm in enumerate(d["materials"].get("texts", [])):
         "styles": [{
             "range": [0, len(pt)],
             "size": font_sz,
-            "bold": True,
+            "bold": False,
             "italic": False,
             "underline": False,
             "fill": {"alpha": 1.0, "content": {"render_type": "solid", "solid": {"alpha": 1.0, "color": col}}}
@@ -139,6 +139,9 @@ for idx, tm in enumerate(d["materials"].get("texts", [])):
         "text": pt
     }
     tm["content"] = json.dumps(clean_obj, ensure_ascii=False)
+    tm["check_flag"] = 7
+    tm["typesetting"] = 0
+    tm["alignment"] = 1
 
 # Normalize video and audio material paths and build draft_materials metadata
 meta_materials = []
@@ -180,6 +183,8 @@ if d["materials"].get("audios"):
     audio_local_id = am.get("local_material_id") or am["id"]
     am["path"] = abs_audio
     am["name"] = p_audio.name
+    am["type"] = "local_music"
+    am["category_name"] = "local"
     am["local_material_id"] = audio_local_id
     meta_materials.append({
         "ai_group_type": "",
@@ -228,6 +233,37 @@ info_data = {
 (target_dir / "template-2.tmp").write_bytes(raw_content)
 tl_dir = target_dir / "Timelines"
 tl_dir.mkdir(parents=True, exist_ok=True)
+
+# Remove any stale timelines
+for sub in tl_dir.iterdir():
+    if sub.is_dir() and sub.name != draft_id:
+        shutil.rmtree(sub, ignore_errors=True)
+
+proj_json = {
+    "config": {
+        "color_space": -1,
+        "hdr_vivid": False,
+        "mixed_track_mode_on": False,
+        "render_index_track_mode_on": False,
+        "use_float_render": False
+    },
+    "create_time": now_us,
+    "id": draft_id,
+    "main_timeline_id": draft_id,
+    "timelines": [
+        {
+            "create_time": now_us,
+            "id": draft_id,
+            "is_marked_delete": False,
+            "name": "Timeline 01",
+            "update_time": now_us
+        }
+    ],
+    "update_time": now_us,
+    "version": 0
+}
+(tl_dir / "project.json").write_bytes(json.dumps(proj_json, ensure_ascii=False, indent=2).encode("utf-8"))
+
 tl_sub = tl_dir / draft_id
 tl_sub.mkdir(parents=True, exist_ok=True)
 (tl_sub / "draft_content.json").write_bytes(raw_content)

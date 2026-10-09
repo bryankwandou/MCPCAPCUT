@@ -38,6 +38,22 @@ def _materials(data: dict) -> tuple[dict[str, dict], dict[str, str]]:
     return out, group_of
 
 
+def unwrap_plain_text(val: Any) -> str:
+    s = str(val or "")
+    for _ in range(5):
+        s_strip = s.strip()
+        if s_strip.startswith("{") and ("\"text\"" in s_strip or "'text'" in s_strip):
+            try:
+                parsed = json.loads(s_strip)
+                if isinstance(parsed, dict) and "text" in parsed:
+                    s = str(parsed["text"])
+                    continue
+            except Exception:
+                pass
+        break
+    return s
+
+
 def from_draft(name: str) -> dict:
     data = capcut.load(name)
     mats, group_of = _materials(data)
@@ -73,10 +89,7 @@ def from_draft(name: str) -> dict:
                     el["keyframes"][prop] = [{"t": k["time_offset"] / US, "v": k["values"][0]}
                                              for k in kf.get("keyframe_list", []) if k.get("values")]
             if m.get("type") == "text":
-                try:
-                    el["text"] = json.loads(m.get("content", "{}")).get("text", "")
-                except ValueError:
-                    el["text"] = ""
+                el["text"] = unwrap_plain_text(m.get("content", "{}"))
                 el.update(type="text", color=m.get("text_color", "#FFFFFF"), font_size=m.get("font_size", 8.0))
             elif t["type"] == "audio":
                 el.update(type="audio", src=m.get("path", ""))
@@ -133,10 +146,13 @@ def apply_to_draft(scene: dict) -> dict:
         seg["common_keyframes"] = _keyframes(el.get("keyframes") or {})
         m = mats.get(seg["material_id"])
         if m is not None and m.get("type") == "text" and "text" in el:
-            content = json.loads(m.get("content") or "{}")
-            content["text"] = el["text"]
-            for st in content.get("styles", []):
-                st["range"] = [0, len(el["text"])]
+            txt_val = unwrap_plain_text(el["text"])
+            h = el.get("color", "#FFFFFF").lstrip("#")
+            rgb = [int(h[i:i + 2], 16) / 255 for i in (0, 2, 4)]
+            content = {"styles": [{"range": [0, len(txt_val)], "size": el.get("font_size", 8.0),
+                                   "bold": False, "italic": False, "underline": False,
+                                   "fill": {"alpha": 1.0, "content": {"render_type": "solid", "solid": {"alpha": 1.0, "color": rgb}}}}],
+                       "text": txt_val}
             m["content"] = json.dumps(content, ensure_ascii=False)
             m["text_color"], m["font_size"] = el.get("color", "#FFFFFF"), el.get("font_size", 8.0)
         track = by_id.get(el["track"]) or capcut._track(data, _track_type(el["type"]), None)
@@ -237,26 +253,24 @@ def _new_segment(data: dict, el: dict) -> dict | None:
         seg = capcut._segment(mid, 0, 0)
         seg.pop("source_timerange")
     elif el["type"] == "text":
-        text = str(el.get("text", "Text"))
-        if text.strip().startswith("{") and '"text"' in text:
-            try:
-                inner = json.loads(text)
-                if isinstance(inner, dict) and "text" in inner:
-                    text = inner["text"]
-            except Exception:
-                pass
+        text = unwrap_plain_text(el.get("text", "Text"))
         h = el.get("color", "#FFFFFF").lstrip("#")
         rgb = [int(h[i:i + 2], 16) / 255 for i in (0, 2, 4)]
-        content = {"text": text, "styles": [{"range": [0, len(text)], "size": el.get("font_size", 8.0),
-                                             "fill": {"content": {"solid": {"color": rgb}}}}]}
+        content = {"styles": [{"range": [0, len(text)], "size": el.get("font_size", 8.0),
+                               "bold": False, "italic": False, "underline": False,
+                               "fill": {"alpha": 1.0, "content": {"render_type": "solid", "solid": {"alpha": 1.0, "color": rgb}}}}],
+                   "text": text}
         data["materials"]["texts"].append({"id": mid, "type": "text", "alignment": 1, "typesetting": 0,
+                                           "check_flag": 7, "text_color": el.get("color", "#FFFFFF"),
+                                           "font_size": el.get("font_size", 8.0),
                                            "content": json.dumps(content, ensure_ascii=False)})
         seg = capcut._segment(mid, 0, 0)
         seg.pop("source_timerange")
     elif el["type"] == "audio":
         p = el["src"]
         local_id = el.get("local_material_id") or capcut._uid()
-        data["materials"]["audios"].append({"id": mid, "local_material_id": local_id, "type": "extract_music", "path": p,
+        data["materials"]["audios"].append({"id": mid, "local_material_id": local_id, "type": "local_music",
+                                            "category_name": "local", "path": p,
                                             "name": Path(p).name, "duration": int(el["duration"] * US)})
         seg = capcut._segment(mid, 0, 0)
     elif el["type"] in ("video", "photo"):
