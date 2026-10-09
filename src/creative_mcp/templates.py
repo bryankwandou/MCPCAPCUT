@@ -8,6 +8,7 @@
 """
 from __future__ import annotations
 
+import shutil
 import time
 from pathlib import Path
 from typing import Any
@@ -54,14 +55,50 @@ def _kind(path: str) -> str:
 def build_capcut(template: str, name: str, media: list[str], title: str = "",
                  captions: list[str] | None = None, cta: str = "", music: str | None = None,
                  palette: str = "bold", clip_seconds: float = 2.5,
-                 base_draft: str | None = None, style: dict[str, str] | None = None) -> dict:
+                 base_draft: str | None = None, style: dict[str, str] | None = None,
+                 overwrite: bool = True) -> dict:
     """style (optional, keys from capcut_library_list): {"transition": key, "filter": key,
     "font": key, "text_animation": key, "clip_animation": key, "sticker": key, "effect": key}"""
     if template not in CAPCUT_TEMPLATES:
         raise ValueError(f"Template tidak dikenal. Pilihan: {list(CAPCUT_TEMPLATES)}")
     pal = PALETTES.get(palette, PALETTES["bold"])
     w, h = (1920, 1080) if template == "youtube_intro" else (1080, 1920)
-    capcut.create_draft(name, w, h, template=base_draft)
+    capcut.create_draft(name, w, h, template=base_draft, overwrite=overwrite)
+    target_dir = capcut.drafts_dir() / name
+    v_dir = target_dir / "assets" / "video"
+    a_dir = target_dir / "assets" / "audio"
+    v_dir.mkdir(parents=True, exist_ok=True)
+    a_dir.mkdir(parents=True, exist_ok=True)
+
+    # Localize media to project assets
+    localized_media = []
+    for m in media:
+        p = Path(m).expanduser().resolve()
+        if p.exists() and p.parent != v_dir:
+            dst = v_dir / p.name
+            try:
+                if not dst.exists() or dst.stat().st_size != p.stat().st_size:
+                    shutil.copy2(p, dst)
+                localized_media.append(str(dst))
+            except Exception:
+                localized_media.append(str(p))
+        else:
+            localized_media.append(str(p))
+    media = localized_media
+
+    if music:
+        mp = Path(music).expanduser().resolve()
+        if mp.exists() and mp.parent != a_dir:
+            dst_a = a_dir / mp.name
+            try:
+                if not dst_a.exists() or dst_a.stat().st_size != mp.stat().st_size:
+                    shutil.copy2(mp, dst_a)
+                music = str(dst_a)
+            except Exception:
+                music = str(mp)
+        else:
+            music = str(mp)
+
     captions = captions or []
     vid, txt, aud = capcut._uid(), capcut._uid(), capcut._uid()
     els: list[dict[str, Any]] = []

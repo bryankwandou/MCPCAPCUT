@@ -271,15 +271,89 @@ def save(name: str, data: dict) -> None:
 
     # Sync draft_meta_info.json
     target_meta = f.parent / "draft_meta_info.json"
+    m = {}
     if target_meta.exists():
         try:
             m = json.loads(target_meta.read_text(encoding="utf-8"))
-            m["draft_id"] = draft_id
-            m["draft_timeline_materials_size_"] = len(raw_bytes)
-            m["tm_duration"] = data.get("duration", 0)
-            target_meta.write_bytes(json.dumps(m, ensure_ascii=False, indent=2).encode("utf-8"))
         except Exception:
-            pass
+            m = {}
+
+    m["draft_id"] = draft_id
+    m["draft_name"] = name
+    m["draft_fold_path"] = f.parent.as_posix()
+    m["draft_root_path"] = drafts_dir().as_posix()
+    m["draft_timeline_materials_size_"] = len(raw_bytes)
+    m["tm_duration"] = data.get("duration", 0)
+    m["tm_draft_modified"] = int(time.time() * US)
+
+    meta_materials = []
+    assets_video = f.parent / "assets" / "video"
+    assets_audio = f.parent / "assets" / "audio"
+
+    for vm in data.get("materials", {}).get("videos", []):
+        p_str = vm.get("path", "")
+        p_obj = Path(p_str)
+        local_id = vm.get("local_material_id")
+        if not local_id:
+            local_id = str(uuid.uuid4()).lower()
+            vm["local_material_id"] = local_id
+
+        fname = vm.get("material_name") or p_obj.name
+        rel_p = f"./assets/video/{fname}" if (assets_video / fname).exists() else p_str
+        meta_materials.append({
+            "ai_group_type": "",
+            "create_time": -1,
+            "duration": vm.get("duration", 10800000000),
+            "enter_from": 0,
+            "extra_info": fname,
+            "file_Path": rel_p,
+            "height": vm.get("height", 1920),
+            "id": local_id,
+            "import_time": -1,
+            "import_time_ms": -1,
+            "item_source": 1,
+            "material_color_tag": "",
+            "md5": "",
+            "metetype": "photo" if vm.get("type") == "photo" else "video",
+            "roughcut_time_range": {"duration": -1, "start": -1},
+            "sub_time_range": {"duration": -1, "start": -1},
+            "type": 0,
+            "width": vm.get("width", 1080)
+        })
+
+    for am in data.get("materials", {}).get("audios", []):
+        p_str = am.get("path", "")
+        p_obj = Path(p_str)
+        local_id = am.get("local_material_id")
+        if not local_id:
+            local_id = str(uuid.uuid4()).lower()
+            am["local_material_id"] = local_id
+
+        fname = am.get("name") or p_obj.name
+        rel_p = f"./assets/audio/{fname}" if (assets_audio / fname).exists() else p_str
+        meta_materials.append({
+            "ai_group_type": "",
+            "create_time": -1,
+            "duration": am.get("duration", 10800000000),
+            "enter_from": 0,
+            "extra_info": fname,
+            "file_Path": rel_p,
+            "height": 0,
+            "id": local_id,
+            "import_time": -1,
+            "import_time_ms": -1,
+            "item_source": 1,
+            "material_color_tag": "",
+            "md5": "",
+            "metetype": "music",
+            "roughcut_time_range": {"duration": -1, "start": -1},
+            "sub_time_range": {"duration": -1, "start": -1},
+            "type": 0,
+            "width": 0
+        })
+
+    m["draft_materials"] = [{"type": 0, "value": meta_materials}]
+    target_meta.write_bytes(json.dumps(m, ensure_ascii=False, indent=2).encode("utf-8"))
 
     sync_root_meta(name, data.get("duration", 0))
 
@@ -301,16 +375,16 @@ def _empty_draft(width: int, height: int, fps: float) -> dict:
 
 
 def create_draft(name: str, width: int = 1080, height: int = 1920, fps: float = 30.0,
-                 template: str | None = None) -> dict:
+                 template: str | None = None, overwrite: bool = False) -> dict:
     """Create a new draft. If ``template`` names an existing draft it is cloned
     (most reliable, since the file layout matches your CapCut version)."""
     root = drafts_dir()
     target = root / name
-    if target.exists():
+    if target.exists() and not overwrite:
         raise FileExistsError(f"Draft '{name}' already exists")
     draft_id = str(uuid.uuid4()).lower()
     if template:
-        shutil.copytree(root / template, target)
+        shutil.copytree(root / template, target, dirs_exist_ok=True)
         data = load(name)
         data["id"] = draft_id
         data["tracks"] = []
@@ -322,7 +396,7 @@ def create_draft(name: str, width: int = 1080, height: int = 1920, fps: float = 
         if (target / "draft_info.json").exists():
             (target / "draft_info.json").write_text(json.dumps(data, ensure_ascii=False), encoding="utf-8")
     else:
-        target.mkdir(parents=True)
+        target.mkdir(parents=True, exist_ok=True)
         data = _empty_draft(width, height, fps)
         data["id"] = draft_id
         content_json = json.dumps(data, ensure_ascii=False)

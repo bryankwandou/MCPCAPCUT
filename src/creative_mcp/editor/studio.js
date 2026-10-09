@@ -18,6 +18,15 @@ const Studio = {
   connected: false,
   async connect() {
     if (!this.bridge) this.bridge = 'http://127.0.0.1:8765';
+    if (!this.token) {
+      try {
+        const p = await this.pingBridge(this.bridge);
+        if (p.ok && p.data && p.data.token) {
+          this.token = p.data.token;
+          lsSet('token', this.token);
+        }
+      } catch {}
+    }
     if (!this.token) this.token = ls('token') || '';
     try {
       await this.api('/api/drafts');

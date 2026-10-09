@@ -215,7 +215,7 @@ class Handler(BaseHTTPRequestHandler):
             if f.is_relative_to(EDITOR_DIR) and f.is_file():
                 return self._file(f)
         if path == "/api/ping":
-            return self._json({"status": "ok", "app": "mcp-capcut", "version": "0.1.0", "connected": True})
+            return self._json({"status": "ok", "app": "mcp-capcut", "version": "0.1.0", "connected": True, "token": token()})
         if not self._authed(q):
             return self._json({"error": "bad token"}, 401)
         try:

@@ -237,7 +237,14 @@ def _new_segment(data: dict, el: dict) -> dict | None:
         seg = capcut._segment(mid, 0, 0)
         seg.pop("source_timerange")
     elif el["type"] == "text":
-        text = el.get("text", "Text")
+        text = str(el.get("text", "Text"))
+        if text.strip().startswith("{") and '"text"' in text:
+            try:
+                inner = json.loads(text)
+                if isinstance(inner, dict) and "text" in inner:
+                    text = inner["text"]
+            except Exception:
+                pass
         h = el.get("color", "#FFFFFF").lstrip("#")
         rgb = [int(h[i:i + 2], 16) / 255 for i in (0, 2, 4)]
         content = {"text": text, "styles": [{"range": [0, len(text)], "size": el.get("font_size", 8.0),
@@ -248,13 +255,15 @@ def _new_segment(data: dict, el: dict) -> dict | None:
         seg.pop("source_timerange")
     elif el["type"] == "audio":
         p = el["src"]
-        data["materials"]["audios"].append({"id": mid, "type": "extract_music", "path": p,
+        local_id = el.get("local_material_id") or capcut._uid()
+        data["materials"]["audios"].append({"id": mid, "local_material_id": local_id, "type": "extract_music", "path": p,
                                             "name": Path(p).name, "duration": int(el["duration"] * US)})
         seg = capcut._segment(mid, 0, 0)
     elif el["type"] in ("video", "photo"):
         p = el["src"]
+        local_id = el.get("local_material_id") or capcut._uid()
         data["materials"]["videos"].append({
-            "id": mid, "type": el["type"], "path": p, "material_name": Path(p).name,
+            "id": mid, "local_material_id": local_id, "type": el["type"], "path": p, "material_name": Path(p).name,
             "duration": int((el.get("source_start", 0) + el["duration"] * float(el.get("speed") or 1)) * US)
             if el["type"] == "video" else 10_800 * US,
             "width": data["canvas_config"]["width"], "height": data["canvas_config"]["height"],
