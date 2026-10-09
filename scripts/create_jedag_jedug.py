@@ -1,4 +1,4 @@
-"""Generate Jedag Jedug project directly for CapCut Desktop."""
+"""Generate ultra-high aesthetic Jedag Jedug project directly for CapCut Desktop."""
 import json
 import os
 import shutil
@@ -23,46 +23,43 @@ audio_dir = media_cache_dir / "audio"
 images_dir.mkdir(parents=True, exist_ok=True)
 audio_dir.mkdir(parents=True, exist_ok=True)
 
-# 1. Generate 10 high-resolution edited photos (1080x1920)
-photo_themes = [
-    ("BEAT 01: GLITCH", "#FF0055", "#18002E", "DROP BASS BOOM"),
-    ("BEAT 02: FLASH", "#00F2FE", "#001233", "ULTRA WHITE FLASH"),
-    ("BEAT 03: SPIN", "#FFE66D", "#33001B", "3D ROTATION BEAT"),
-    ("BEAT 04: SLIDE", "#3DD6E0", "#0B132B", "DYNAMIC SPEED CUT"),
-    ("BEAT 05: ZOOM", "#FF416C", "#1F0429", "PUNCH IMPACT ZOOM"),
-    ("BEAT 06: PUSH", "#A8EDEA", "#1A1A24", "CINEMATIC CAMERA PUSH"),
-    ("BEAT 07: ROLL", "#7F00FF", "#0C071E", "RETRO FILM ROLL GLITCH"),
-    ("BEAT 08: WIPE", "#11998E", "#061A14", "NEON FLOW WIPE"),
-    ("BEAT 09: BLUR", "#FF4B2B", "#2B0B00", "MOTION BLUR BURST"),
-    ("BEAT 10: FADE", "#3A1C71", "#05050A", "SMOOTH FADE OUT")
+# 10 High-res aesthetic generated AI images
+artifact_dir = Path(r"C:\Users\arche\.gemini\antigravity-ide\brain\7b33cbb1-5f5c-409c-a87e-055fe7311b58")
+
+source_images = [
+    artifact_dir / "jj_cyberpunk_hero_1791524713692.jpg",
+    artifact_dir / "jj_supercar_neon_1791524733513.jpg",
+    artifact_dir / "jj_festival_dj_1791524777892.jpg",
+    artifact_dir / "jj_cyber_fashion_1791524807021.jpg",
+    artifact_dir / "jj_cyber_bike_1791524831174.jpg",
+    artifact_dir / "jj_neon_katana_1791525052107.jpg",
+    artifact_dir / "jj_cockpit_pov_1791525075308.jpg",
+    artifact_dir / "jj_neon_dancer_1791525099535.jpg",
+    artifact_dir / "jj_tokyo_cross_1791525118990.jpg",
+    artifact_dir / "jj_studio_beats_1791525140462.jpg",
+]
+
+captions = [
+    "CYBERPUNK BEAT",
+    "HYPER DRIFT",
+    "BASS IMPACT",
+    "HOLO GLOW",
+    "TURBO RUSH",
+    "NEON SLASH",
+    "HYPER SPEED",
+    "ENERGY FLOW",
+    "NEON METROPOLIS",
+    "SOUND WAVE"
 ]
 
 media_paths = []
-for i, (title, col1, col2, sub) in enumerate(photo_themes):
-    img = Image.new("RGB", (1080, 1920), col2)
-    draw = ImageDraw.Draw(img)
-    
-    # Draw background gradient bars and tech grid
-    for y in range(0, 1920, 40):
-        draw.line([(0, y), (1080, y)], fill=(30, 35, 50))
-    
-    # Draw geometric glow card in center
-    cx, cy = 540, 960
-    cw, ch = 460, 600
-    draw.rectangle([cx - cw, cy - ch, cx + cw, cy + ch], outline=col1, width=6)
-    draw.rectangle([cx - cw + 20, cy - ch + 20, cx + cw - 20, cy + ch - 20], outline=(255, 255, 255, 120), width=2)
-    
-    # Draw text banners
-    draw.text((cx, cy - 250), f"CAPCUT JJ #{i+1:02d}", fill=col1, anchor="mm", font_size=58)
-    draw.text((cx, cy - 80), title, fill=(255, 255, 255), anchor="mm", font_size=74)
-    draw.text((cx, cy + 90), sub, fill=col1, anchor="mm", font_size=42)
-    draw.text((cx, cy + 280), "PREMIUM BEAT DROP SYNC", fill=(200, 200, 200), anchor="mm", font_size=32)
-    
+for i, src in enumerate(source_images):
     out_file = images_dir / f"jj_photo_{i+1:02d}.jpg"
-    img.save(out_file, quality=95)
+    if src.exists():
+        shutil.copy2(src, out_file)
     media_paths.append(str(out_file))
 
-# 2. Prepare audio file
+# Audio file preparation (local free music)
 src_audio = audio_dir / "beat_music.wav"
 if not src_audio.exists():
     src_audio = drafts_dir / "HUT49 Video1 SID" / "assets" / "audio" / "v1-music.wav"
@@ -71,15 +68,14 @@ if src_audio.exists() and src_audio != dst_audio:
     shutil.copy2(src_audio, dst_audio)
 audio_path = str(dst_audio) if dst_audio.exists() else None
 
-# 3. Build CapCut draft using base template with overwrite enabled
-captions = [p[3] for p in photo_themes]
+# Build CapCut draft using jedagjedug template
 res = templates.build_capcut(
     template="jedagjedug",
     name=target_name,
     media=media_paths,
     title="JEDAG JEDUG VIRAL",
     captions=captions,
-    cta="Dibuat di CapCut Pro Web & MCP",
+    cta="",
     music=audio_path,
     palette="neon",
     clip_seconds=0.75,
@@ -87,7 +83,7 @@ res = templates.build_capcut(
     overwrite=True
 )
 
-# 4. Ensure assets directory in project is fully self-contained
+# Ensure project asset dirs exist
 assets_video = target_dir / "assets" / "video"
 assets_audio = target_dir / "assets" / "audio"
 assets_video.mkdir(parents=True, exist_ok=True)
@@ -96,15 +92,14 @@ assets_audio.mkdir(parents=True, exist_ok=True)
 for i in range(1, 11):
     src_p = images_dir / f"jj_photo_{i:02d}.jpg"
     dst_p = assets_video / f"jj_photo_{i:02d}.jpg"
-    if src_p.exists() and (not dst_p.exists() or dst_p.stat().st_size != src_p.stat().st_size):
+    if src_p.exists():
         shutil.copy2(src_p, dst_p)
 
 if dst_audio and dst_audio.exists():
     dst_proj_audio = assets_audio / "beat_music.wav"
-    if not dst_proj_audio.exists() or dst_proj_audio.stat().st_size != dst_audio.stat().st_size:
-        shutil.copy2(dst_audio, dst_proj_audio)
+    shutil.copy2(dst_audio, dst_proj_audio)
 
-# 5. Clean up draft_content.json text layers and normalize paths
+# Load generated draft_content.json and polish texts
 content_path = target_dir / "draft_content.json"
 with open(content_path, "r", encoding="utf-8") as f:
     d = json.load(f)
@@ -112,38 +107,44 @@ with open(content_path, "r", encoding="utf-8") as f:
 draft_id = d["id"]
 now_us = int(time.time() * 1_000_000)
 
-clean_texts = [
-    "JEDAG JEDUG VIRAL", "DROP BASS BOOM", "ULTRA WHITE FLASH", "3D ROTATION BEAT",
-    "DYNAMIC SPEED CUT", "PUNCH IMPACT ZOOM", "CINEMATIC CAMERA PUSH", "RETRO FILM ROLL GLITCH",
-    "NEON FLOW WIPE", "MOTION BLUR BURST", "SMOOTH FADE OUT", "Dibuat di CapCut Pro Web & MCP"
-]
-colors = [
-    [1.0, 0.85, 0.0], [1.0, 0.0, 0.33], [0.0, 0.95, 1.0], [1.0, 0.9, 0.4],
-    [0.24, 0.84, 0.88], [1.0, 0.25, 0.42], [0.66, 0.93, 0.92], [0.5, 0.0, 1.0],
-    [0.07, 0.6, 0.56], [1.0, 0.29, 0.17], [0.23, 0.11, 0.44], [0.0, 0.9, 1.0]
+clean_texts = ["JEDAG JEDUG VIRAL"] + captions
+text_colors = [
+    [1.0, 0.9, 0.0],   # Yellow gold
+    [0.0, 0.95, 1.0],  # Cyan
+    [1.0, 0.0, 0.4],   # Neon pink
+    [0.0, 1.0, 0.55],  # Neon green
+    [0.6, 0.2, 1.0],   # Purple
+    [1.0, 0.5, 0.0],   # Orange
+    [0.0, 0.8, 1.0],   # Electric blue
+    [1.0, 0.1, 0.6],   # Magenta
+    [0.4, 1.0, 0.8],   # Mint
+    [1.0, 0.85, 0.2],  # Warm gold
+    [0.7, 0.3, 1.0]    # Violet
 ]
 
 for idx, tm in enumerate(d["materials"].get("texts", [])):
     pt = clean_texts[idx % len(clean_texts)]
-    col = colors[idx % len(colors)]
-    font_sz = 16.0 if idx == 0 else 10.0
+    col = text_colors[idx % len(text_colors)]
+    font_sz = 15.0 if idx == 0 else 10.0
     clean_obj = {
         "styles": [{
             "range": [0, len(pt)],
             "size": font_sz,
-            "bold": False,
+            "bold": True,
             "italic": False,
             "underline": False,
             "fill": {"alpha": 1.0, "content": {"render_type": "solid", "solid": {"alpha": 1.0, "color": col}}}
         }],
         "text": pt
     }
-    tm["content"] = json.dumps(clean_obj, ensure_ascii=False)
+    tm["content"] = json.dumps(clean_obj, separators=(",", ":"), ensure_ascii=False)
     tm["check_flag"] = 7
     tm["typesetting"] = 0
     tm["alignment"] = 1
+    tm["text_color"] = "#FFE500" if idx == 0 else "#00F2FE"
+    tm["font_size"] = font_sz
 
-# Normalize video and audio material paths and build draft_materials metadata
+# Video and audio material metadata
 meta_materials = []
 for i, vm in enumerate(d["materials"].get("videos", [])):
     p = assets_video / f"jj_photo_{i+1:02d}.jpg"
@@ -207,11 +208,12 @@ if d["materials"].get("audios"):
         "width": 0
     })
 
-# Save updated draft_content.json
 raw_content = json.dumps(d, ensure_ascii=False, indent=2).encode("utf-8")
-content_path.write_bytes(raw_content)
 
-# Update draft_info.json
+# 1. Write root draft files
+content_path.write_bytes(raw_content)
+(target_dir / "template-2.tmp").write_bytes(raw_content)
+
 info_data = {
     "id": draft_id,
     "name": target_name,
@@ -229,15 +231,23 @@ info_data = {
 }
 (target_dir / "draft_info.json").write_bytes(json.dumps(info_data, ensure_ascii=False, indent=2).encode("utf-8"))
 
-# Update template-2.tmp and Timelines
-(target_dir / "template-2.tmp").write_bytes(raw_content)
+# 2. Write Timelines and project.json (supporting active open timelines)
 tl_dir = target_dir / "Timelines"
 tl_dir.mkdir(parents=True, exist_ok=True)
 
-# Remove any stale timelines
-for sub in tl_dir.iterdir():
-    if sub.is_dir() and sub.name != draft_id:
-        shutil.rmtree(sub, ignore_errors=True)
+# Detect if CapCut has an existing timeline registered
+existing_tl_id = None
+tl_proj_file = tl_dir / "project.json"
+if tl_proj_file.exists():
+    try:
+        t_data = json.loads(tl_proj_file.read_text("utf-8"))
+        existing_tl_id = t_data.get("main_timeline_id") or t_data.get("id")
+    except Exception:
+        pass
+
+timeline_ids_to_update = {draft_id}
+if existing_tl_id:
+    timeline_ids_to_update.add(existing_tl_id)
 
 proj_json = {
     "config": {
@@ -248,12 +258,12 @@ proj_json = {
         "use_float_render": False
     },
     "create_time": now_us,
-    "id": draft_id,
-    "main_timeline_id": draft_id,
+    "id": existing_tl_id or draft_id,
+    "main_timeline_id": existing_tl_id or draft_id,
     "timelines": [
         {
             "create_time": now_us,
-            "id": draft_id,
+            "id": existing_tl_id or draft_id,
             "is_marked_delete": False,
             "name": "Timeline 01",
             "update_time": now_us
@@ -262,14 +272,44 @@ proj_json = {
     "update_time": now_us,
     "version": 0
 }
-(tl_dir / "project.json").write_bytes(json.dumps(proj_json, ensure_ascii=False, indent=2).encode("utf-8"))
+tl_proj_file.write_bytes(json.dumps(proj_json, ensure_ascii=False, indent=2).encode("utf-8"))
 
-tl_sub = tl_dir / draft_id
-tl_sub.mkdir(parents=True, exist_ok=True)
-(tl_sub / "draft_content.json").write_bytes(raw_content)
-(tl_sub / "template-2.tmp").write_bytes(raw_content)
+for tid in timeline_ids_to_update:
+    tl_sub = tl_dir / tid
+    tl_sub.mkdir(parents=True, exist_ok=True)
+    # Also adjust draft id inside draft_content if targeting existing_tl_id
+    d_clone = dict(d)
+    d_clone["id"] = tid
+    tl_content = json.dumps(d_clone, ensure_ascii=False, indent=2).encode("utf-8")
+    (tl_sub / "draft_content.json").write_bytes(tl_content)
+    (tl_sub / "template-2.tmp").write_bytes(tl_content)
 
-# Update draft_meta_info.json
+# 3. Create high-aesthetic cover draft_cover.jpg
+cover_src = source_images[1] if source_images[1].exists() else source_images[0]
+with Image.open(cover_src) as img_in:
+    # Resize and crop to 1280x720 landscape banner
+    target_aspect = 1280 / 720
+    orig_w, orig_h = img_in.size
+    crop_h = int(orig_w / target_aspect)
+    crop_top = (orig_h - crop_h) // 2
+    cropped = img_in.crop((0, crop_top, orig_w, crop_top + crop_h))
+    cover_img = cropped.resize((1280, 720), Image.Resampling.LANCZOS)
+
+c_draw = ImageDraw.Draw(cover_img)
+# Dark vignette gradient overlay for text readability
+for y in range(500, 720):
+    alpha = int((y - 500) / 220 * 200)
+    c_draw.line([(0, y), (1280, y)], fill=(0, 0, 0))
+
+c_draw.text((640, 560), "JEDAG JEDUG VIRAL", fill="#FFE500", anchor="mm", font_size=68)
+c_draw.text((640, 630), "CYBERPUNK BEAT DROP · 10 TRANSITIONS · 4K", fill="#00F2FE", anchor="mm", font_size=30)
+
+cover_path = target_dir / "draft_cover.jpg"
+cover_img.save(cover_path, quality=95)
+for tid in timeline_ids_to_update:
+    (tl_dir / tid / "draft_cover.jpg").write_bytes(cover_path.read_bytes())
+
+# 4. Update draft_meta_info.json
 meta_path = target_dir / "draft_meta_info.json"
 meta_data = {}
 if meta_path.exists():
@@ -279,7 +319,7 @@ if meta_path.exists():
     except Exception:
         pass
 
-meta_data["draft_id"] = draft_id
+meta_data["draft_id"] = existing_tl_id or draft_id
 meta_data["draft_name"] = target_name
 meta_data["draft_root_path"] = drafts_dir.as_posix()
 meta_data["draft_fold_path"] = target_dir.as_posix()
@@ -289,22 +329,10 @@ meta_data["tm_draft_modified"] = now_us
 meta_data["draft_materials"] = [{"type": 0, "value": meta_materials}]
 meta_path.write_bytes(json.dumps(meta_data, ensure_ascii=False, indent=2).encode("utf-8"))
 
-# 6. Generate cover image draft_cover.jpg (1280x720) in project directory
-cover_img = Image.new("RGB", (1280, 720), "#0A0814")
-c_draw = ImageDraw.Draw(cover_img)
-for y in range(720):
-    c_draw.line([(0, y), (1280, y)], fill=(int(10 + y * 0.02), int(8 + y * 0.01), int(20 + y * 0.05)))
-c_draw.rectangle([60, 60, 1220, 660], outline="#FF0055", width=4)
-c_draw.text((640, 280), "JEDAG JEDUG VIRAL", fill="#FFE66D", anchor="mm", font_size=84)
-c_draw.text((640, 400), "10 TRANSISI · BEAT DROP PULSE · CAPCUT PRO", fill="#FFFFFF", anchor="mm", font_size=36)
-c_draw.text((640, 490), "TERHUBUNG 100% KE CAPCUT DESKTOP", fill="#3DD6E0", anchor="mm", font_size=28)
-cover_path = target_dir / "draft_cover.jpg"
-cover_img.save(cover_path, quality=95)
+# 5. Register in root_meta_info.json
+capcut.sync_root_meta(target_name, int(d.get("duration", 7.5) * 1_000_000))
 
-# 7. Ensure root meta is synced
-capcut.sync_root_meta(target_name, int(d.get("duration", 8.0) * 1_000_000))
-
-print("SUCCESS: Jedag Jedug draft built!")
+print("SUCCESS: Ultra-aesthetic Jedag Jedug draft successfully generated and synchronized!")
 print("Project path:", str(target_dir))
 print("Cover path:", str(cover_path))
 print("Duration:", d.get("duration"), "seconds")
