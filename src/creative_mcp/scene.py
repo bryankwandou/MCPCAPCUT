@@ -24,7 +24,7 @@ KF_TYPES = {"x": ["KFTypePositionX"], "y": ["KFTypePositionY"], "rotation": ["KF
 KF_REV = {"KFTypePositionX": "x", "KFTypePositionY": "y", "KFTypeRotation": "rotation",
           "KFTypeScaleX": "scale", "KFTypeGlobalAlpha": "alpha", "KFTypeVolume": "volume"}
 # material groups that belong to exactly one segment and are rebuilt on every apply
-OWNED = ("speeds", "audio_fades", "transitions")
+OWNED = ("speeds", "audio_fades", "transitions", "material_animations")
 
 
 def _materials(data: dict) -> tuple[dict[str, dict], dict[str, str]]:
@@ -175,7 +175,7 @@ def _track_type(el_type: str) -> str:
 
 
 def _owned_refs(data: dict, seg: dict, el: dict, group_of: dict, speed: float) -> None:
-    """Rebuild the per-segment speed / fade / transition materials from the element."""
+    """Rebuild the per-segment speed / fade / transition / animation materials from the element."""
     mats = data["materials"]
     refs = [r for r in seg.get("extra_material_refs", []) or [] if group_of.get(r) not in OWNED]
     if el["type"] in ("video", "audio", "photo"):
@@ -189,16 +189,91 @@ def _owned_refs(data: dict, seg: dict, el: dict, group_of: dict, speed: float) -
                                                   "fade_in_duration": int(el.get("fade_in", 0) * US),
                                                   "fade_out_duration": int(el.get("fade_out", 0) * US)})
         refs.append(fid)
+
+    # 1. Native Transitions resolution
     trx = el.get("transition")
-    if trx and not str(trx.get("key", "")).startswith("demo:"):
-        from . import capcut_library
-        item = capcut_library.load_library()["items"].get(trx["key"])
-        if item:
-            m = copy.deepcopy(item["material"])
-            m["id"] = capcut._uid()
-            m["duration"] = int(float(trx.get("duration", 0.5)) * US)
+    if trx:
+        slug = str(trx.get("slug") or trx.get("key") or trx.get("name") or "").lower()
+        slug = slug.replace("demo:", "").replace("transition:", "").strip()
+        matched_trx = None
+        enums_file = Path(__file__).parent / "enums.json"
+        if enums_file.exists():
+            try:
+                enums_data = json.loads(enums_file.read_text("utf-8"))
+                for t_item in enums_data.get("transitions", []):
+                    if t_item.get("slug", "").lower() == slug or t_item.get("name", "").lower() == slug or t_item.get("member", "").lower() == slug:
+                        matched_trx = t_item
+                        break
+            except Exception:
+                pass
+        if matched_trx:
+            dur_us = int(float(trx.get("duration", matched_trx.get("default_duration", 500000) / US)) * US)
+            m = {
+                "category_id": "",
+                "category_name": "",
+                "duration": dur_us,
+                "effect_id": matched_trx["effect_id"],
+                "id": capcut._uid(),
+                "is_overlap": bool(matched_trx.get("is_overlap", False)),
+                "name": matched_trx["name"],
+                "platform": "all",
+                "resource_id": matched_trx["resource_id"],
+                "type": "transition"
+            }
             mats.setdefault("transitions", []).append(m)
             refs.append(m["id"])
+        else:
+            from . import capcut_library
+            item = capcut_library.load_library()["items"].get(trx.get("key"))
+            if item:
+                m = copy.deepcopy(item["material"])
+                m["id"] = capcut._uid()
+                m["duration"] = int(float(trx.get("duration", 0.5)) * US)
+                mats.setdefault("transitions", []).append(m)
+                refs.append(m["id"])
+
+    # 2. Native Clip Intro Animations resolution
+    anim_slug = str(el.get("animation") or el.get("intro_anim") or "").lower().strip()
+    if anim_slug:
+        matched_anim = None
+        enums_file = Path(__file__).parent / "enums.json"
+        if enums_file.exists():
+            try:
+                enums_data = json.loads(enums_file.read_text("utf-8"))
+                for a_item in enums_data.get("image_intros", []):
+                    if a_item.get("slug", "").lower() == anim_slug or a_item.get("name", "").lower() == anim_slug or a_item.get("member", "").lower() == anim_slug:
+                        matched_anim = a_item
+                        break
+            except Exception:
+                pass
+        if matched_anim:
+            dur_us = int(float(el.get("anim_duration", matched_anim.get("duration", 500000) / US)) * US)
+            anim_mat = {
+                "animations": [{
+                    "anim_adjust_params": None,
+                    "category_id": "in_fav",
+                    "category_name": "in_fav",
+                    "duration": dur_us,
+                    "id": matched_anim["effect_id"],
+                    "material_type": "video",
+                    "name": matched_anim["name"],
+                    "panel": "video",
+                    "path": "",
+                    "platform": "all",
+                    "request_id": "",
+                    "resource_id": matched_anim["resource_id"],
+                    "source_platform": 1,
+                    "start": 0,
+                    "third_resource_id": "0",
+                    "type": "in"
+                }],
+                "id": capcut._uid(),
+                "multi_language_current": "none",
+                "type": "sticker_animation"
+            }
+            mats.setdefault("material_animations", []).append(anim_mat)
+            refs.append(anim_mat["id"])
+
     seg["extra_material_refs"] = refs
 
 

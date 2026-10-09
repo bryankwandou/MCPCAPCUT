@@ -117,21 +117,25 @@ def build_capcut(template: str, name: str, media: list[str], title: str = "",
     if template == "jedagjedug":
         beat_dur = min(clip_seconds, 0.8)
         transitions = [
-            ("transition:zoomin", "Zoom Masuk"),
-            ("transition:flash", "Kilat Putih"),
-            ("transition:spin", "Putar"),
-            ("transition:slideleft", "Geser Kiri"),
-            ("transition:zoomout", "Zoom Keluar"),
-            ("transition:camerapush", "Dorong Kamera"),
-            ("transition:filmroll", "Gulung Film"),
-            ("transition:wipe", "Sapu"),
-            ("transition:blur", "Kabur Sinematik"),
-            ("transition:fadeblack", "Pudar Hitam"),
+            ("white-flash", "White Flash"),
+            ("flash", "Flash"),
+            ("bw-flash", "B&W Flash"),
+            ("rgb-glitch", "RGB Glitch"),
+            ("color-glitch", "Color Glitch"),
+            ("radial-blur", "Radial Blur"),
+            ("shake-3", "Shake 3"),
+            ("cw-swirl", "CW Swirl"),
+            ("slide", "Slide"),
+        ]
+        anims = [
+            "shake-1", "zoom-1", "shake-3", "zoom-in", "rock-vertically",
+            "flip", "whirl", "spin-up-1", "swing-bottom", "mini-zoom"
         ]
         if title:
             text(title, 0, min(3.0, len(media) * beat_dur), y=0.55, size=15, color=pal["primary"])
         for i, m in enumerate(media):
-            t_key, t_name = transitions[i % len(transitions)]
+            t_slug, t_name = transitions[i % len(transitions)]
+            anim_slug = anims[i % len(anims)]
             is_even = (i % 2 == 0)
             kfs = {
                 "scale": [
@@ -140,8 +144,8 @@ def build_capcut(template: str, name: str, media: list[str], title: str = "",
                     {"t": +(beat_dur), "v": 1.1 if is_even else 1.0}
                 ]
             }
-            trx_obj = {"key": f"demo:{t_key}", "name": t_name, "duration": 0.25}
-            clip(m, t, beat_dur, transition=trx_obj, keyframes=kfs)
+            trx_obj = {"slug": t_slug, "name": t_name, "duration": 0.3} if i < len(media) - 1 else None
+            clip(m, t, beat_dur, transition=trx_obj, animation=anim_slug, keyframes=kfs)
             cap_text = captions[i] if i < len(captions) else f"BEAT DROP {i+1}"
             text(cap_text, t, beat_dur, y=-0.65, size=9.5, color=pal["accent"] if is_even else pal["primary"])
             t += beat_dur
