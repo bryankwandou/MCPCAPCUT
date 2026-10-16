@@ -348,6 +348,44 @@ def capcut_delete_segment(name: str, segment_id: str) -> dict:
     return capcut.delete_segment(name, segment_id)
 
 
+@mcp.tool()
+def capcut_add_transition(name: str, segment_id: str, slug: str, duration: float = 0.46) -> dict:
+    """Attach a transition to a video segment. Slug examples: white-flash, flash, strobe, glitch, radial-blur."""
+    return capcut.add_transition(name, segment_id, slug, duration)
+
+
+@mcp.tool()
+def capcut_add_animation(name: str, segment_id: str, intro: str | None = None, outro: str | None = None,
+                         combo: str | None = None, duration: float = 0.4) -> dict:
+    """Attach intro/outro/combo animation to a clip. Slugs: zoom-out, flash-in, pulsing-zooms, fade-in, scroll-up."""
+    return capcut.add_animation(name, segment_id, intro, outro, combo, duration)
+
+
+@mcp.tool()
+def capcut_add_effect(name: str, slug: str, start: float, duration: float) -> dict:
+    """Add a scene effect on its own track. Slugs: shake, strobe, chromatic, explosion, zoom-lens, edge-glow."""
+    return capcut.add_effect(name, slug, start, duration)
+
+
+@mcp.tool()
+def capcut_add_filter(name: str, slug: str, start: float = 0.0, duration: float | None = None, full: bool = True) -> dict:
+    """Add a color filter on its own track. Slugs: vivid, vintage, warm, cool, bw, contrast, dramatic."""
+    return capcut.add_filter(name, slug, start, duration, full)
+
+
+@mcp.tool()
+def capcut_add_audio(name: str, file_path: str, start: float = 0.0, duration: float | None = None,
+                     volume: float = 1.0) -> dict:
+    """Add an audio / music file to the audio track."""
+    return capcut.add_audio_file(name, file_path, start, duration, volume)
+
+
+@mcp.tool()
+def capcut_sync_timelines(name: str) -> dict:
+    """Synchronize drifted timeline mirrors (root and nested Timelines) with draft_content.json."""
+    return capcut.sync_timelines(name)
+
+
 # ------------------------------------------------- Live desktop control ----
 @mcp.tool()
 def desktop_screenshot(max_width: int = 1600) -> list:

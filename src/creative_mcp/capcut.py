@@ -568,3 +568,82 @@ def delete_segment(name: str, segment_id: str) -> dict:
     _recalc(data)
     save(name, data)
     return {"ok": True}
+
+
+def add_transition(name: str, segment_id: str, slug: str, duration: float = 0.46) -> dict:
+    """Attach a transition to a video segment using verified CapCut engine."""
+    import subprocess
+    draft_path = str(drafts_dir() / name)
+    cmd = ["npx", "capcut-cli", "transition", draft_path, segment_id, slug, "--duration", str(duration), "--force-write"]
+    res = subprocess.run(" ".join(f'"{a}"' if " " in a else a for a in cmd), capture_output=True, text=True, shell=True)
+    if res.returncode != 0:
+        raise RuntimeError(f"capcut-cli transition failed: {res.stderr or res.stdout}")
+    return json.loads(res.stdout) if res.stdout.strip().startswith("{") else {"ok": True, "output": res.stdout}
+
+
+def add_animation(name: str, segment_id: str, intro: str | None = None, outro: str | None = None,
+                  combo: str | None = None, duration: float = 0.4) -> dict:
+    """Attach intro/outro/combo animation to a clip."""
+    import subprocess
+    draft_path = str(drafts_dir() / name)
+    cmd = ["npx", "capcut-cli", "image-anim", draft_path, segment_id, "--force-write"]
+    if intro:
+        cmd.extend(["--intro", intro, "--intro-duration", str(duration)])
+    if outro:
+        cmd.extend(["--outro", outro, "--outro-duration", str(duration)])
+    if combo:
+        cmd.extend(["--combo", combo, "--combo-duration", str(duration)])
+    res = subprocess.run(" ".join(f'"{a}"' if " " in a else a for a in cmd), capture_output=True, text=True, shell=True)
+    if res.returncode != 0:
+        raise RuntimeError(f"capcut-cli image-anim failed: {res.stderr or res.stdout}")
+    return json.loads(res.stdout) if res.stdout.strip().startswith("{") else {"ok": True, "output": res.stdout}
+
+
+def add_effect(name: str, slug: str, start: float, duration: float) -> dict:
+    """Add a scene effect on a dedicated effect track."""
+    import subprocess
+    draft_path = str(drafts_dir() / name)
+    cmd = ["npx", "capcut-cli", "add-effect", draft_path, slug, str(start), str(duration), "--force-write"]
+    res = subprocess.run(" ".join(f'"{a}"' if " " in a else a for a in cmd), capture_output=True, text=True, shell=True)
+    if res.returncode != 0:
+        raise RuntimeError(f"capcut-cli add-effect failed: {res.stderr or res.stdout}")
+    return json.loads(res.stdout) if res.stdout.strip().startswith("{") else {"ok": True, "output": res.stdout}
+
+
+def add_filter(name: str, slug: str, start: float = 0.0, duration: float | None = None, full: bool = True) -> dict:
+    """Add a color filter on a dedicated filter track."""
+    import subprocess
+    draft_path = str(drafts_dir() / name)
+    cmd = ["npx", "capcut-cli", "add-filter", draft_path, slug, "--force-write"]
+    if full or duration is None:
+        cmd.append("--full")
+    else:
+        cmd.extend([str(start), str(duration)])
+    res = subprocess.run(" ".join(f'"{a}"' if " " in a else a for a in cmd), capture_output=True, text=True, shell=True)
+    if res.returncode != 0:
+        raise RuntimeError(f"capcut-cli add-filter failed: {res.stderr or res.stdout}")
+    return json.loads(res.stdout) if res.stdout.strip().startswith("{") else {"ok": True, "output": res.stdout}
+
+
+def add_audio_file(name: str, file_path: str, start: float = 0.0, duration: float | None = None,
+                   volume: float = 1.0) -> dict:
+    """Add an audio file to the audio track."""
+    import subprocess
+    draft_path = str(drafts_dir() / name)
+    data = load(name)
+    total_sec = duration or (data.get("duration", 0) / US) or 7.9
+    cmd = ["npx", "capcut-cli", "add-audio", draft_path, file_path, str(start), str(total_sec), "--volume", str(volume), "--force-write"]
+    res = subprocess.run(" ".join(f'"{a}"' if " " in a else a for a in cmd), capture_output=True, text=True, shell=True)
+    if res.returncode != 0:
+        raise RuntimeError(f"capcut-cli add-audio failed: {res.stderr or res.stdout}")
+    return json.loads(res.stdout) if res.stdout.strip().startswith("{") else {"ok": True, "output": res.stdout}
+
+
+def sync_timelines(name: str) -> dict:
+    """Reconcile timeline mirrors (template-2.tmp, draft_info.json) with draft_content.json."""
+    import subprocess
+    draft_path = str(drafts_dir() / name)
+    cmd = ["npx", "capcut-cli", "sync-timelines", draft_path, "--nested", "--apply", "--force-write"]
+    res = subprocess.run(" ".join(f'"{a}"' if " " in a else a for a in cmd), capture_output=True, text=True, shell=True)
+    return json.loads(res.stdout) if res.stdout.strip().startswith("{") else {"ok": True, "output": res.stdout}
+
