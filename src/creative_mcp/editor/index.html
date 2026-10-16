@@ -1148,16 +1148,16 @@ function applyTemplateToProject(tpl) {
   if (tpl.isJedagJedug) {
     // Generate specialized edited photo sequence for Jedag Jedug
     const photoConfigs = [
-      { name: 'Drop Beat 1', c1: '#FF0055', c2: '#2A0845', trx: { key: 'demo:transition:zoomin', name: 'Zoom masuk', duration: 0.3 } },
-      { name: 'Drop Beat 2', c1: '#00F2FE', c2: '#4FACFE', trx: { key: 'demo:transition:flash', name: 'Kilat putih', duration: 0.25 } },
-      { name: 'Drop Beat 3', c1: '#FFE66D', c2: '#FF4D6D', trx: { key: 'demo:transition:spin', name: 'Putar', duration: 0.3 } },
-      { name: 'Drop Beat 4', c1: '#3DD6E0', c2: '#1F4068', trx: { key: 'demo:transition:slideleft', name: 'Geser kiri', duration: 0.3 } },
-      { name: 'Drop Beat 5', c1: '#F38181', c2: '#FCE38A', trx: { key: 'demo:transition:zoomout', name: 'Zoom keluar', duration: 0.3 } },
-      { name: 'Drop Beat 6', c1: '#A8EDEA', c2: '#FED6E3', trx: { key: 'demo:transition:camerapush', name: 'Dorong Kamera', duration: 0.35 } },
-      { name: 'Drop Beat 7', c1: '#7F00FF', c2: '#E100FF', trx: { key: 'demo:transition:filmroll', name: 'Gulung Film', duration: 0.3 } },
-      { name: 'Drop Beat 8', c1: '#11998E', c2: '#38EF7D', trx: { key: 'demo:transition:wipe', name: 'Sapu', duration: 0.25 } },
-      { name: 'Drop Beat 9', c1: '#FF416C', c2: '#FF4B2B', trx: { key: 'demo:transition:blur', name: 'Kabur', duration: 0.3 } },
-      { name: 'Drop Beat 10', c1: '#3A1C71', c2: '#D76D77', trx: { key: 'demo:transition:fadeblack', name: 'Pudar hitam', duration: 0.3 } }
+      { name: 'Drop Beat 1', c1: '#FF0055', c2: '#2A0845', anim: 'zoom-out', trx: { slug: 'white-flash', name: 'White Flash', duration: 0.3 } },
+      { name: 'Drop Beat 2', c1: '#00F2FE', c2: '#4FACFE', anim: 'flash-in', trx: { slug: 'flash', name: 'Flash', duration: 0.25 } },
+      { name: 'Drop Beat 3', c1: '#FFE66D', c2: '#FF4D6D', anim: 'pulsing-zooms', trx: { slug: 'strobe', name: 'Strobe', duration: 0.3 } },
+      { name: 'Drop Beat 4', c1: '#3DD6E0', c2: '#1F4068', anim: 'zoom-out', trx: { slug: 'glitch', name: 'Glitch', duration: 0.3 } },
+      { name: 'Drop Beat 5', c1: '#F38181', c2: '#FCE38A', anim: 'flash-in', trx: { slug: 'radial-blur', name: 'Radial Blur', duration: 0.3 } },
+      { name: 'Drop Beat 6', c1: '#A8EDEA', c2: '#FED6E3', anim: 'pulsing-zooms', trx: { slug: 'white-flash', name: 'White Flash', duration: 0.35 } },
+      { name: 'Drop Beat 7', c1: '#7F00FF', c2: '#E100FF', anim: 'zoom-out', trx: { slug: 'flash', name: 'Flash', duration: 0.3 } },
+      { name: 'Drop Beat 8', c1: '#11998E', c2: '#38EF7D', anim: 'flash-in', trx: { slug: 'strobe', name: 'Strobe', duration: 0.25 } },
+      { name: 'Drop Beat 9', c1: '#FF416C', c2: '#FF4B2B', anim: 'pulsing-zooms', trx: { slug: 'glitch', name: 'Glitch', duration: 0.3 } },
+      { name: 'Drop Beat 10', c1: '#3A1C71', c2: '#D76D77', anim: 'fade-in', trx: { slug: 'white-flash', name: 'White Flash', duration: 0.3 } }
     ];
 
     const clipDur = 0.8;
@@ -1183,21 +1183,22 @@ function applyTemplateToProject(tpl) {
         source_start: 0,
         fade_in: 0,
         fade_out: 0,
+        animation: pc.anim,
         keyframes: {
           scale: [{ t: 0, v: isEven ? 1.0 : 1.25 }, { t: clipDur, v: isEven ? 1.18 : 1.0 }]
         },
         transition: idx < photoConfigs.length - 1 ? pc.trx : undefined,
-        look: idx % 3 === 0 ? 'demo:filter:neon' : idx % 3 === 1 ? 'demo:filter:kontras' : undefined
+        look: idx % 3 === 0 ? 'vivid' : idx % 3 === 1 ? 'contrast' : undefined
       });
     });
 
-    // Effect layer (Flash & Glitch overlays for Jedag Jedug beats)
+    // Effect layer (Scene Effects for Jedag Jedug beats)
     elements.push({
       id: uid(),
       track: ft,
       type: 'effect',
-      lib: 'demo:effect:glitch',
-      name: 'Glitch RGB Beat',
+      slug: 'shake',
+      name: 'Shake Beat',
       start: 1.6,
       duration: 1.6,
       x: 0, y: 0, scale: 1, rotation: 0, alpha: 1, volume: 1, speed: 1, source_start: 0, fade_in: 0, fade_out: 0, keyframes: {}
@@ -1206,10 +1207,23 @@ function applyTemplateToProject(tpl) {
       id: uid(),
       track: ft,
       type: 'effect',
-      lib: 'demo:effect:flash',
-      name: 'Flash Kilat Beat',
+      slug: 'strobe',
+      name: 'Strobe Beat',
       start: 4.8,
       duration: 1.6,
+      x: 0, y: 0, scale: 1, rotation: 0, alpha: 1, volume: 1, speed: 1, source_start: 0, fade_in: 0, fade_out: 0, keyframes: {}
+    });
+
+    // Color filter track
+    const fltTrack = uid();
+    elements.push({
+      id: uid(),
+      track: fltTrack,
+      type: 'filter',
+      slug: 'vivid',
+      name: 'Vivid Cinematic Filter',
+      start: 0,
+      duration: +(photoConfigs.length * clipDur).toFixed(2),
       x: 0, y: 0, scale: 1, rotation: 0, alpha: 1, volume: 1, speed: 1, source_start: 0, fade_in: 0, fade_out: 0, keyframes: {}
     });
 
@@ -1218,7 +1232,7 @@ function applyTemplateToProject(tpl) {
       id: uid(),
       track: tt,
       type: 'text',
-      text: 'JEDAG JEDUG VIRAL!',
+      text: 'JEDAG JEDUG VIRAL',
       start: 0.2,
       duration: 3.2,
       x: 0, y: 0.45,
@@ -1240,7 +1254,7 @@ function applyTemplateToProject(tpl) {
       id: uid(),
       track: tt,
       type: 'text',
-      text: 'DROP THE BEAT NOW ⚡',
+      text: 'DROP THE BEAT NOW',
       start: 3.6,
       duration: 4.0,
       x: 0, y: -0.55,
@@ -1291,6 +1305,7 @@ function applyTemplateToProject(tpl) {
       tracks: [
         { id: tt, type: 'text' },
         { id: ft, type: 'effect' },
+        { id: fltTrack, type: 'filter' },
         { id: vt, type: 'video' },
         { id: at, type: 'audio' }
       ],

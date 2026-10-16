@@ -256,7 +256,7 @@ def _owned_refs(data: dict, seg: dict, el: dict, group_of: dict, speed: float) -
                     "duration": dur_us,
                     "id": matched_anim["effect_id"],
                     "material_type": "video",
-                    "name": matched_anim["name"],
+                    "name": matched_anim.get("name") or matched_anim.get("title") or matched_anim.get("member", "Animation"),
                     "panel": "video",
                     "path": "",
                     "platform": "all",
@@ -315,18 +315,68 @@ def _clone_segment(data: dict, mats: dict, src: dict, el: dict) -> dict:
 
 def _new_segment(data: dict, el: dict) -> dict | None:
     mid = capcut._uid()
-    if el.get("lib"):  # sticker / effect / filter from the personal CapCut library
-        if str(el["lib"]).startswith("demo:"):
-            return None
+    if el.get("lib") or el.get("type") in ("effect", "filter", "sticker"):
+        raw_slug = str(el.get("slug") or el.get("name") or el.get("lib") or "").lower()
+        slug = raw_slug.replace("demo:", "").replace("effect:", "").replace("filter:", "").replace("sticker:", "").strip()
+        alias_map = {
+            "glitch": "glitch", "flash": "flash", "shake": "shake", "strobe": "strobe",
+            "kontras": "contrast", "neon": "vivid", "vivid": "vivid", "explosion": "explosion",
+            "chromatic": "chromatic", "zoom-lens": "zoom-lens"
+        }
+        slug = alias_map.get(slug, slug)
+
+        enums_file = Path(__file__).parent / "enums.json"
+        matched = None
+        group = None
+        if enums_file.exists():
+            try:
+                enums_data = json.loads(enums_file.read_text("utf-8"))
+                if el.get("type") == "filter" or "filter" in raw_slug:
+                    for f_item in enums_data.get("filters", []):
+                        if f_item.get("slug", "").lower() == slug or f_item.get("name", "").lower() == slug:
+                            matched = f_item
+                            group = "filters"
+                            break
+                if not matched:
+                    for e_item in enums_data.get("scene_effects", []):
+                        if e_item.get("slug", "").lower() == slug or e_item.get("name", "").lower() == slug:
+                            matched = e_item
+                            group = "video_effects"
+                            break
+            except Exception:
+                pass
+
+        if matched and group:
+            if group == "video_effects":
+                m = {
+                    "id": mid, "type": "video_effect", "name": matched["name"],
+                    "effect_id": matched["effect_id"], "resource_id": matched["resource_id"],
+                    "category_id": "", "category_name": "", "apply_target_type": 0,
+                    "path": "", "platform": "all", "render_index": 0
+                }
+            else:
+                m = {
+                    "id": mid, "type": "filter", "name": matched["name"],
+                    "effect_id": matched["effect_id"], "resource_id": matched["resource_id"],
+                    "intensity": 1.0, "path": "", "platform": "all"
+                }
+            data["materials"].setdefault(group, []).append(m)
+            seg = capcut._segment(mid, 0, 0)
+            seg.pop("source_timerange", None)
+            seg["id"] = el["id"]
+            return seg
+
         from . import capcut_library
-        item = capcut_library.load_library()["items"].get(el["lib"])
-        if not item:
-            return None
-        m = copy.deepcopy(item["material"])
-        m["id"] = mid
-        data["materials"].setdefault(item["group"], []).append(m)
-        seg = capcut._segment(mid, 0, 0)
-        seg.pop("source_timerange")
+        item = capcut_library.load_library()["items"].get(el.get("lib"))
+        if item:
+            m = copy.deepcopy(item["material"])
+            m["id"] = mid
+            data["materials"].setdefault(item["group"], []).append(m)
+            seg = capcut._segment(mid, 0, 0)
+            seg.pop("source_timerange", None)
+            seg["id"] = el["id"]
+            return seg
+        return None
     elif el["type"] == "text":
         text = unwrap_plain_text(el.get("text", "Text"))
         h = el.get("color", "#FFFFFF").lstrip("#")
