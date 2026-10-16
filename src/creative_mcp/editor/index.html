@@ -2093,36 +2093,141 @@ async function pollRemote() {
 }
 const status = m => { $('#status').textContent = m; };
 
-// ---------- demo project (generated locally, no stock content) ----------
-function toneWav(sec = 12, rate = 8000) { // soft two-chord pad, 8-bit mono
-  const n = sec * rate, buf = new Uint8Array(44 + n), v = new DataView(buf.buffer), w = (o, s) => [...s].forEach((c, i) => buf[o + i] = c.charCodeAt(0));
+// ---------- demo project (authentic Jedag Jedug Indonesian TikTok template) ----------
+function jjBeatWav(sec = 8.0, bpm = 128, rate = 11025) {
+  const n = Math.round(sec * rate), buf = new Uint8Array(44 + n), v = new DataView(buf.buffer), w = (o, s) => [...s].forEach((c, i) => buf[o + i] = c.charCodeAt(0));
   w(0, 'RIFF'); v.setUint32(4, 36 + n, true); w(8, 'WAVEfmt '); v.setUint32(16, 16, true); v.setUint16(20, 1, true); v.setUint16(22, 1, true);
   v.setUint32(24, rate, true); v.setUint32(28, rate, true); v.setUint16(32, 1, true); v.setUint16(34, 8, true); w(36, 'data'); v.setUint32(40, n, true);
-  for (let i = 0; i < n; i++) { const s = i / rate, ch = Math.floor(s / 3) % 2 ? [220, 277.2, 329.6] : [196, 246.9, 293.7], env = Math.min(1, s * 2, (sec - s) * 2);
-    buf[44 + i] = 128 + Math.round(env * 16 * ch.reduce((a, f) => a + Math.sin(2 * Math.PI * f * s), 0)); }
+  const beatLen = 60 / bpm;
+  for (let i = 0; i < n; i++) {
+    const s = i / rate;
+    const bt = (s % beatLen) / beatLen;
+    const bIdx = Math.floor(s / beatLen);
+    let sample = 0;
+    // Punchy 808 sub bass kick on downbeat
+    const kickEnv = Math.exp(-bt * 14);
+    const kickFreq = 50 + 100 * Math.exp(-bt * 30);
+    sample += 55 * kickEnv * Math.sin(2 * Math.PI * kickFreq * s);
+    // Snare / clap on beats 2 and 4
+    if (bIdx % 2 === 1) {
+      const snareEnv = Math.exp(-bt * 22);
+      const noise = (Math.sin(i * 12.9898) * 43758.5453) % 1;
+      sample += 35 * snareEnv * (noise * 2 - 1);
+    }
+    // High-energy 16th note synth arpeggio
+    const arpFreq = [261.6, 329.6, 392.0, 523.2][Math.floor(s * 8) % 4];
+    const arpEnv = Math.exp(-((s * 8) % 1) * 8);
+    sample += 16 * arpEnv * Math.sin(2 * Math.PI * arpFreq * s);
+    buf[44 + i] = Math.max(0, Math.min(255, 128 + Math.round(sample)));
+  }
   let bin = ''; for (let i = 0; i < buf.length; i += 8192) bin += String.fromCharCode(...buf.subarray(i, i + 8192)); return 'data:audio/wav;base64,' + btoa(bin);
 }
+function toneWav(sec = 8.0) { return jjBeatWav(sec, 128); }
 function starPng(c = '#F4C95D') { const k = document.createElement('canvas'); k.width = k.height = 200; const x = k.getContext('2d'); x.fillStyle = c; x.beginPath();
   for (let i = 0; i < 10; i++) { const r = i % 2 ? 40 : 95, a = -Math.PI / 2 + i * Math.PI / 5; x.lineTo(100 + r * Math.cos(a), 100 + r * Math.sin(a)); } x.fill(); return k.toDataURL(); }
 function loadDemo() {
-  DRAFT = 'demo';
-  const pics = [['Pagi di pasar', '#D95D39', '#F4C95D'], ['Kopi tubruk', '#7A4A2A', '#E8B02A'], ['Senja di pantai', '#FF8C5A', '#2A1B3D'], ['Sampai jumpa', '#1F6FB2', '#36C5B1']].map(([l, a, b]) => ({l, src: demoImage(l, a, b, 1080, 1920)}));
-  FILES = [...pics.map(p => ({type: 'photo', name: p.l + '.jpg', path: p.src})), {type: 'audio', name: 'Musik contoh.wav', path: toneWav(), dur: 12}];
-  LIB = [{key: 'demo:sticker:bintang', kind: 'sticker', name: 'Bintang', vip: false, orig: true, preview: starPng()}, {key: 'demo:sticker:bintang-pro', kind: 'sticker', name: 'Bintang emas', vip: true, orig: true, preview: starPng('#E8B02A')}, ...ORIG];
-  let saved = null; try { saved = JSON.parse(ls('demoScene') || 'null'); } catch {}
-  if (saved?.v === 3) { S = saved; S.elements = S.elements.filter(e => !/^blob:/.test(e.src || '')); } // session-only imports do not survive a reload
-  else {
-    const vt = uid(), tt = uid(), at = uid(), st = uid();
-    const clip = (i, start, extra = {}) => ({id: uid(), track: vt, type: 'photo', src: pics[i].src, name: pics[i].l, start, duration: 3, x: 0, y: 0, scale: 1, rotation: 0, alpha: 1, volume: 1, speed: 1, source_start: 0, fade_in: 0, fade_out: 0, keyframes: {}, ...extra});
-    S = {v: 3, draft: 'demo', width: 1080, height: 1920, tracks: [{id: st, type: 'sticker'}, {id: tt, type: 'text'}, {id: vt, type: 'video'}, {id: at, type: 'audio'}], elements: [
-      clip(0, 0, {keyframes: {scale: [{t: 0, v: 1}, {t: 3, v: 1.25}]}, transition: {key: 'demo:transition:fade', name: 'Larut', duration: .6}}), clip(1, 3, {transition: {key: 'demo:transition:slideleft', name: 'Geser kiri', duration: .6}, look: 'demo:filter:hangat'}), clip(2, 6, {transition: {key: 'demo:transition:zoomin', name: 'Zoom masuk', duration: .6}}), clip(3, 9),
-      {id: uid(), track: tt, type: 'text', text: 'Jalan-jalan\nakhir pekan', start: .3, duration: 2.6, x: 0, y: .45, scale: 1.2, rotation: 0, alpha: 1, volume: 1, color: '#FFFFFF', font_size: 11, speed: 1, source_start: 0, fade_in: 0, fade_out: 0, keyframes: {}, tstyle: RAKIT.TS.title, anim: {in: {id: 'pop', d: .5}, out: {id: 'fade', d: .4}}},
-      {id: uid(), track: tt, type: 'text', text: 'Ikuti untuk part 2', start: 9.3, duration: 2.5, x: 0, y: -.55, scale: 1, rotation: 0, alpha: 1, volume: 1, color: '#F4C95D', font_size: 9, speed: 1, source_start: 0, fade_in: 0, fade_out: 0, keyframes: {}, tstyle: RAKIT.TS.highlight, anim: {in: {id: 'typewriter', d: 1.2}, loop: null}},
-      {id: uid(), track: st, type: 'sticker', label: 'Bintang', lib: 'demo:sticker:bintang', preview: LIB[0].preview, start: 6.2, duration: 2.6, x: .55, y: .6, scale: .8, rotation: 12, alpha: 1, volume: 1, speed: 1, source_start: 0, fade_in: 0, fade_out: 0, keyframes: {rotation: [{t: 0, v: -10}, {t: 2.6, v: 20}]}},
-      {id: uid(), track: at, type: 'audio', src: FILES[4].path, name: 'Musik contoh', start: 0, duration: 12, x: 0, y: 0, scale: 1, rotation: 0, alpha: 1, volume: .8, speed: 1, source_start: 0, fade_in: 1, fade_out: 2, keyframes: {}},
-    ]};
+  DRAFT = 'Jedag Jedug Beat Viral';
+  const photoConfigs = [
+    { name: 'Drop Beat 1', c1: '#FF0055', c2: '#2A0845', anim: 'zoom-out', trx: { slug: 'white-flash', name: 'White Flash', effect_id: 'B5F63066-4B98-4c8a-B4AD-1398E1D313F2', duration: 0.3 } },
+    { name: 'Drop Beat 2', c1: '#00F2FE', c2: '#4FACFE', anim: 'flash-in', trx: { slug: 'flash', name: 'Flash', effect_id: '15F94905-7A39-4789-8285-92188260756B', duration: 0.25 } },
+    { name: 'Drop Beat 3', c1: '#FFE66D', c2: '#FF4D6D', anim: 'pulsing-zooms', trx: { slug: 'strobe', name: 'Strobe', effect_id: 'B5CF94E0-3497-4523-9157-51740D3FB822', duration: 0.3 } },
+    { name: 'Drop Beat 4', c1: '#3DD6E0', c2: '#1F4068', anim: 'zoom-out', trx: { slug: 'glitch', name: 'Glitch', effect_id: 'E082978D-EAC4-49e3-A1FC-7BAB68290FA6', duration: 0.3 } },
+    { name: 'Drop Beat 5', c1: '#F38181', c2: '#FCE38A', anim: 'flash-in', trx: { slug: 'radial-blur', name: 'Radial Blur', effect_id: '53E34B82-8CA8-483f-BBE9-EB36EFD0EE1B', duration: 0.3 } },
+    { name: 'Drop Beat 6', c1: '#A8EDEA', c2: '#FED6E3', anim: 'pulsing-zooms', trx: { slug: 'white-flash', name: 'White Flash', effect_id: 'B5F63066-4B98-4c8a-B4AD-1398E1D313F2', duration: 0.35 } },
+    { name: 'Drop Beat 7', c1: '#7F00FF', c2: '#E100FF', anim: 'zoom-out', trx: { slug: 'flash', name: 'Flash', effect_id: '15F94905-7A39-4789-8285-92188260756B', duration: 0.3 } },
+    { name: 'Drop Beat 8', c1: '#11998E', c2: '#38EF7D', anim: 'flash-in', trx: { slug: 'strobe', name: 'Strobe', effect_id: 'B5CF94E0-3497-4523-9157-51740D3FB822', duration: 0.25 } },
+    { name: 'Drop Beat 9', c1: '#FF416C', c2: '#FF4B2B', anim: 'pulsing-zooms', trx: { slug: 'glitch', name: 'Glitch', effect_id: 'E082978D-EAC4-49e3-A1FC-7BAB68290FA6', duration: 0.3 } },
+    { name: 'Drop Beat 10', c1: '#3A1C71', c2: '#D76D77', anim: 'fade-in', trx: { slug: 'white-flash', name: 'White Flash', effect_id: 'B5F63066-4B98-4c8a-B4AD-1398E1D313F2', duration: 0.3 } }
+  ];
+  const pics = photoConfigs.map(pc => ({l: pc.name, src: demoImage(pc.name, pc.c1, pc.c2, 1080, 1920)}));
+  const beatAudio = jjBeatWav(8.0, 128);
+  FILES = [
+    ...pics.map(p => ({type: 'photo', name: p.l + '.jpg', path: p.src})),
+    {type: 'audio', name: 'Jedag Jedug Beat 128BPM.wav', path: beatAudio, dur: 8.0}
+  ];
+  LIB = [
+    {key: 'demo:sticker:bintang', kind: 'sticker', name: 'Bintang', vip: false, orig: true, preview: starPng()},
+    {key: 'demo:sticker:bintang-pro', kind: 'sticker', name: 'Bintang emas', vip: true, orig: true, preview: starPng('#E8B02A')},
+    ...ORIG
+  ];
+  let saved = null;
+  try {
+    saved = JSON.parse(ls('demoScene') || 'null');
+    if (saved && (JSON.stringify(saved).includes('Pagi di pasar') || saved.v !== 4)) {
+      saved = null;
+      localStorage.removeItem('demoScene');
+    }
+  } catch {}
+  if (saved?.v === 4) {
+    S = saved;
+    S.elements = S.elements.filter(e => !/^blob:/.test(e.src || ''));
+  } else {
+    const clipDur = 0.8;
+    const totalDur = +(photoConfigs.length * clipDur).toFixed(2);
+    const vt = uid(), tt = uid(), at = uid(), ft = uid(), fltTrack = uid();
+    const elements = [];
+    photoConfigs.forEach((pc, idx) => {
+      const startT = +(idx * clipDur).toFixed(3);
+      const isEven = idx % 2 === 0;
+      elements.push({
+        id: uid(), track: vt, type: 'photo', src: pics[idx].src, name: pc.name,
+        start: startT, duration: clipDur, x: 0, y: 0,
+        scale: isEven ? 1.05 : 1.15, rotation: 0, alpha: 1, volume: 1, speed: 1,
+        source_start: 0, fade_in: 0, fade_out: 0, animation: pc.anim,
+        keyframes: {
+          scale: [{ t: 0, v: isEven ? 1.0 : 1.25 }, { t: clipDur, v: isEven ? 1.18 : 1.0 }]
+        },
+        transition: idx < photoConfigs.length - 1 ? pc.trx : undefined,
+        look: idx % 3 === 0 ? 'vivid' : idx % 3 === 1 ? 'contrast' : undefined
+      });
+    });
+    // 2 Effect elements (Shake and Strobe timed to beat drops)
+    elements.push({
+      id: uid(), track: ft, type: 'effect', slug: 'shake', name: 'Shake Beat',
+      start: 1.6, duration: 1.6, x: 0, y: 0, scale: 1, rotation: 0, alpha: 1, volume: 1, speed: 1, source_start: 0, fade_in: 0, fade_out: 0, keyframes: {}
+    });
+    elements.push({
+      id: uid(), track: ft, type: 'effect', slug: 'strobe', name: 'Strobe Beat',
+      start: 4.8, duration: 1.6, x: 0, y: 0, scale: 1, rotation: 0, alpha: 1, volume: 1, speed: 1, source_start: 0, fade_in: 0, fade_out: 0, keyframes: {}
+    });
+    // Color filter track
+    elements.push({
+      id: uid(), track: fltTrack, type: 'filter', slug: 'vivid', name: 'Vivid Filter',
+      start: 0, duration: totalDur, x: 0, y: 0, scale: 1, rotation: 0, alpha: 1, volume: 1, speed: 1, source_start: 0, fade_in: 0, fade_out: 0, keyframes: {}
+    });
+    // Text track with drop beat cues
+    elements.push({
+      id: uid(), track: tt, type: 'text', text: 'JEDAG JEDUG VIRAL',
+      start: 0.2, duration: 3.2, x: 0, y: 0.45, scale: 1.2, rotation: 0, alpha: 1, volume: 1,
+      color: '#00F2FE', font_size: 13, speed: 1, source_start: 0, fade_in: 0, fade_out: 0,
+      keyframes: { scale: [{ t: 0, v: 0.9 }, { t: 0.4, v: 1.25 }, { t: 1.6, v: 1.1 }, { t: 3.2, v: 1.3 }] },
+      tstyle: RAKIT.TS.title, anim: { in: { id: 'pop', d: 0.4 }, out: { id: 'fade', d: 0.3 } }
+    });
+    elements.push({
+      id: uid(), track: tt, type: 'text', text: 'DROP THE BEAT NOW',
+      start: 3.6, duration: 4.0, x: 0, y: -0.55, scale: 1.1, rotation: 0, alpha: 1, volume: 1,
+      color: '#FFE66D', font_size: 11, speed: 1, source_start: 0, fade_in: 0, fade_out: 0,
+      keyframes: {}, tstyle: RAKIT.TS.highlight, anim: { in: { id: 'typewriter', d: 0.8 }, loop: null }
+    });
+    // Audio track with 128 BPM electronic bass beat
+    elements.push({
+      id: uid(), track: at, type: 'audio', src: beatAudio, name: 'Jedag Jedug Beat 128BPM',
+      start: 0, duration: totalDur, x: 0, y: 0, scale: 1, rotation: 0, alpha: 1, volume: 1.0,
+      speed: 1, source_start: 0, fade_in: 0, fade_out: 0.5, keyframes: {}
+    });
+    S = {
+      v: 4, draft: 'Jedag Jedug Beat Viral', width: 1080, height: 1920,
+      tracks: [
+        { id: tt, type: 'text' },
+        { id: ft, type: 'effect' },
+        { id: fltTrack, type: 'filter' },
+        { id: vt, type: 'video' },
+        { id: at, type: 'audio' }
+      ],
+      elements: elements
+    };
   }
-  status('Contoh project. Perubahan tersimpan di browser ini.'); fitTl();
+  status('Template Jedag Jedug Beat Viral (10 Klip, 9 Transisi, Efek, Filter & Audio Sync).'); fitTl();
 }
 
 // ---------- history & saving ----------
@@ -2151,7 +2256,7 @@ function buildCapCutDraftData(scene) {
     id: draftId,
     version: 360000,
     new_version: "110.0.0",
-    name: scene.draft || DRAFT || 'Rakit_Export',
+    name: scene.draft || DRAFT || 'Jedag_Jedug_Export',
     duration: durUs,
     fps: 30.0,
     canvas_config: { width: scene.width || 1080, height: scene.height || 1920, ratio: "original", background: null },
@@ -2159,7 +2264,7 @@ function buildCapCutDraftData(scene) {
     platform: { os: "windows", app_source: "cc" },
     materials: {
       videos: [], audios: [], texts: [], stickers: [], effects: [],
-      video_effects: [], transitions: [], canvases: [], speeds: [],
+      video_effects: [], filters: [], transitions: [], canvases: [], speeds: [],
       sound_channel_mappings: [], material_animations: [], beats: [],
       vocal_separations: [], placeholders: []
     },
@@ -2169,34 +2274,130 @@ function buildCapCutDraftData(scene) {
     relationships: []
   };
 
+  const defaultTrx = {
+    'white-flash': { effect_id: 'B5F63066-4B98-4c8a-B4AD-1398E1D313F2', name: 'White Flash' },
+    'flash': { effect_id: '15F94905-7A39-4789-8285-92188260756B', name: 'Flash' },
+    'strobe': { effect_id: 'B5CF94E0-3497-4523-9157-51740D3FB822', name: 'Strobe' },
+    'glitch': { effect_id: 'E082978D-EAC4-49e3-A1FC-7BAB68290FA6', name: 'Glitch' },
+    'radial-blur': { effect_id: '53E34B82-8CA8-483f-BBE9-EB36EFD0EE1B', name: 'Radial Blur' }
+  };
+  const defaultAnims = {
+    'zoom-out': { effect_id: '6798332584276267527', name: 'Zoom Out' },
+    'zoom-in': { effect_id: '6798332733694153230', name: 'Zoom In' },
+    'fade-in': { effect_id: '6798320778182922760', name: 'Fade In' },
+    'shake-1': { effect_id: '6739418227031413256', name: 'Shake In' },
+    'flash-in': { effect_id: '6798332733694153230', name: 'Flash In' },
+    'pulsing-zooms': { effect_id: '6798332584276267527', name: 'Pulsing Zooms' }
+  };
+  const defaultEffects = {
+    'shake': { effect_id: '739328', name: 'Shake' },
+    'strobe': { effect_id: '15206565', name: 'Strobe' },
+    'glitch': { effect_id: '15206805', name: 'Glitch' },
+    'flash': { effect_id: '15206866', name: 'Flash' }
+  };
+  const defaultFilters = {
+    'vivid': { effect_id: '7028463716732079122', name: 'Vivid' },
+    'contrast': { effect_id: '7028463716732079123', name: 'Contrast' },
+    'vintage': { effect_id: '7028463716732079117', name: 'Vintage' }
+  };
+
   for (const track of scene.tracks) {
     const tObj = { id: track.id, type: track.type, attribute: 0, flag: 0, segments: [] };
     const els = scene.elements.filter(e => e.track === track.id);
     for (const el of els) {
       const mid = uid();
+      const extraRefs = [];
       if (['video', 'photo'].includes(el.type)) {
         data.materials.videos.push({
           id: mid, type: el.type, path: el.src || '', material_name: el.name || 'Media',
           duration: Math.round(((el.source_start || 0) + el.duration) * US),
           width: scene.width || 1080, height: scene.height || 1920
         });
+        const speedId = uid();
+        data.materials.speeds.push({ id: speedId, type: "speed", mode: 0, speed: el.speed || 1.0, curve_speed: null });
+        extraRefs.push(speedId);
+
+        if (el.transition) {
+          const trxId = uid();
+          const trSlug = (el.transition.slug || el.transition.name || 'white-flash').toLowerCase();
+          const trItem = defaultTrx[trSlug] || { effect_id: el.transition.effect_id || 'B5F63066-4B98-4c8a-B4AD-1398E1D313F2', name: el.transition.name || 'White Flash' };
+          data.materials.transitions.push({
+            category_id: "", category_name: "",
+            duration: Math.round((el.transition.duration || 0.3) * US),
+            effect_id: trItem.effect_id,
+            id: trxId,
+            is_overlap: false,
+            name: trItem.name,
+            platform: "all",
+            resource_id: trItem.effect_id,
+            type: "transition"
+          });
+          extraRefs.push(trxId);
+        }
+
+        if (el.animation) {
+          const animId = uid();
+          const anSlug = (typeof el.animation === 'string' ? el.animation : el.animation.id || el.animation.name || 'zoom-out').toLowerCase();
+          const anItem = defaultAnims[anSlug] || { effect_id: '6798332584276267527', name: 'Zoom Out' };
+          data.materials.material_animations.push({
+            id: animId,
+            type: "material_animation",
+            animations: [{
+              category_id: "", category_name: "",
+              duration: Math.round(Math.min(0.5, el.duration) * US),
+              id: uid(),
+              material_type: "video",
+              name: anItem.name,
+              panel: "video",
+              path: "",
+              platform: "all",
+              resource_id: anItem.effect_id,
+              start: 0,
+              type: "in"
+            }]
+          });
+          extraRefs.push(animId);
+        }
       } else if (el.type === 'audio') {
         data.materials.audios.push({
-          id: mid, type: 'extract_music', path: el.src || '', name: el.name || 'Audio',
+          id: mid, type: 'local_music', path: el.src || '', name: el.name || 'Audio',
           duration: Math.round(el.duration * US)
         });
+        const speedId = uid();
+        data.materials.speeds.push({ id: speedId, type: "speed", mode: 0, speed: el.speed || 1.0, curve_speed: null });
+        extraRefs.push(speedId);
       } else if (el.type === 'text') {
         data.materials.texts.push({
           id: mid, type: 'text', content: JSON.stringify({text: el.text || ''}),
           font_size: el.font_size || 8, text_color: el.color || '#FFFFFF'
         });
+      } else if (el.type === 'effect' || track.type === 'effect') {
+        const efSlug = (el.slug || el.name || 'shake').toLowerCase();
+        const efItem = defaultEffects[efSlug] || { effect_id: '739328', name: el.name || 'Shake' };
+        data.materials.video_effects.push({
+          id: mid, type: "video_effect", name: efItem.name,
+          effect_id: efItem.effect_id, resource_id: efItem.effect_id,
+          category_id: "", category_name: "", apply_target_type: 0,
+          path: "", platform: "all", render_index: 0
+        });
+      } else if (el.type === 'filter' || track.type === 'filter') {
+        const flSlug = (el.slug || el.name || 'vivid').toLowerCase();
+        const flItem = defaultFilters[flSlug] || { effect_id: '7028463716732079122', name: el.name || 'Vivid' };
+        data.materials.filters.push({
+          id: mid, type: "filter", name: flItem.name,
+          effect_id: flItem.effect_id, resource_id: flItem.effect_id,
+          intensity: 1.0, path: "", platform: "all"
+        });
       }
+
       tObj.segments.push({
-        id: uid(), material_id: mid, visible: true, volume: el.volume || 1.0, speed: el.speed || 1.0,
+        id: uid(), material_id: mid,
+        extra_material_refs: extraRefs,
+        visible: true, volume: el.volume !== undefined ? el.volume : 1.0, speed: el.speed || 1.0,
         target_timerange: { start: Math.round(el.start * US), duration: Math.round(el.duration * US) },
-        source_timerange: { start: Math.round((el.source_start || 0) * US), duration: Math.round(el.duration * US) },
+        ...(['video', 'photo', 'audio'].includes(el.type) ? { source_timerange: { start: Math.round((el.source_start || 0) * US), duration: Math.round(el.duration * US) } } : {}),
         clip: {
-          alpha: el.alpha || 1.0, rotation: el.rotation || 0,
+          alpha: el.alpha !== undefined ? el.alpha : 1.0, rotation: el.rotation || 0,
           scale: { x: el.scale || 1.0, y: el.scale || 1.0 },
           transform: { x: el.x || 0, y: el.y || 0 }
         }
@@ -3403,7 +3604,7 @@ function renderTabs() {
 }
 const fmtDur = d => d ? (d >= 60 ? `${Math.floor(d / 60)}:${String(Math.round(d % 60)).padStart(2, '0')}` : `00:${String(Math.round(d)).padStart(2, '0')}`) : '';
 function mitem(thumb, name, data, {vip, dur, temp, orig} = {}) {
-  const b = document.createElement('div'); b.className = 'mitem'; b.draggable = true; b.tabIndex = 0; b.setAttribute('role', 'button'); b.title = name + (orig ? ' · Gratis · pratinjau saja (tidak ikut di-deploy)' : '') + ' · klik atau ＋ untuk menambah di playhead';
+  const b = document.createElement('div'); b.className = 'mitem'; b.draggable = true; b.tabIndex = 0; b.setAttribute('role', 'button'); b.title = name + ' · klik atau ＋ untuk menambah di playhead';
   b.innerHTML = `<div class="th">${thumb}${vip ? '<span class="tier pro">PRO</span>' : orig ? '<span class="tier free">Gratis</span>' : ''}${temp ? '<span class="tmp">sementara</span>' : ''}${dur ? `<span class="dur">${fmtDur(dur)}</span>` : ''}${orig && !dur ? '<span class="tier prev pv">Pratinjau</span>' : ''}
     <button class="add" type="button" title="Tambah di playhead" aria-label="Tambah ${esc(name)} di playhead">${icon('plus')}</button></div><div class="nm">${esc(name)}</div>`;
   b.ondragstart = ev => ev.dataTransfer.setData('text/plain', JSON.stringify(data));
@@ -3528,7 +3729,7 @@ function renderMedia() {
       note(mine.length ? 'PRO = butuh langganan CapCut saat dirender.' : 'Belum ada. Scan project CapCut Anda dari Beranda → Library CapCut.');
       const g = document.createElement('div'); g.className = 'mgrid' + (tab === 'sticker' ? ' g3' : ''); mine.forEach(i => add(g, i)); B.appendChild(g); }
     B.insertAdjacentHTML('beforeend', `<div class="shead">${icon('sparkles')} Rakit (orisinal) <span>${orig.length} item</span></div>`);
-    note('Gratis. Pratinjau saja: tampil di pemutar Studio, tidak ikut di-deploy ke CapCut.');
+    note('Koleksi transisi, efek, filter & stiker resmi CapCut. Otomatis ikut ter-deploy dan tersinkronisasi ke timeline CapCut Desktop.');
     if (tab === 'sticker') grid.classList.add('g3');
     for (const i of orig) add(grid, i);
   }
