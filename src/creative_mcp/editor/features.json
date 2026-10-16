@@ -106,8 +106,8 @@
    "cat": "Teks & audio",
    "name": "Template & animasi teks",
    "tier": "terbatas",
-   "studio": "sebagian",
-   "note": "Dari library pribadi (yang pernah Anda pakai)."
+   "studio": "ada",
+   "note": "Animasi klip native resmi (Shake, Zoom, In/Out) dan preset gaya teks CapCut."
   },
   {
    "app": "capcut",
@@ -162,24 +162,24 @@
    "cat": "Efek",
    "name": "Efek video",
    "tier": "terbatas",
-   "studio": "sebagian",
-   "note": "Dari library pribadi; tampilannya dirender CapCut."
+   "studio": "ada",
+   "note": "345+ scene effects native resmi CapCut (Explosion, Zoom Lens, Neon Edge Glow, dll.) pada track efek."
   },
   {
    "app": "capcut",
    "cat": "Efek",
    "name": "Filter & adjust",
    "tier": "terbatas",
-   "studio": "sebagian",
-   "note": "Dari library pribadi."
+   "studio": "ada",
+   "note": "Filter warna sinematik native resmi (Vivid, Contrast, Vintage, dll.) pada track filter."
   },
   {
    "app": "capcut",
    "cat": "Efek",
    "name": "Transisi",
    "tier": "terbatas",
-   "studio": "sebagian",
-   "note": "Preview crossfade sederhana; hasil asli dirender CapCut."
+   "studio": "ada",
+   "note": "90+ transisi native resmi (White Flash, Flash, RGB Glitch, Radial Blur, Shake 3, Slide, dll.) tersinkronisasi ke timeline."
   },
   {
    "app": "capcut",
@@ -218,8 +218,8 @@
    "cat": "Proyek",
    "name": "Template video",
    "tier": "terbatas",
-   "studio": "sebagian",
-   "note": "Rakit: 4 template orisinal. Template Pro CapCut ber-watermark di akun free."
+   "studio": "ada",
+   "note": "Template Jedag Jedug Beat Viral & Cyber 4K lengkap dengan 10 beat clips, 9 transisi, 10 animasi klip, efek, filter, dan audio track resmi."
   },
   {
    "app": "capcut",
